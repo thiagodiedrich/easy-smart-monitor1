@@ -64,7 +64,7 @@ class EasySmartDoorSensor(CoordinatorEntity, BinarySensorEntity):
         self._config = sensor_cfg
 
         self._attr_unique_id = f"esm_porta_{sensor_cfg['uuid']}"
-        self._attr_name = f"{equip['nome']} Porta"
+        self._attr_name = f"{equip['nome']} Porta ({sensor_cfg['ha_entity_id'].split('.')[-1]})"
         self._attr_device_class = BinarySensorDeviceClass.DOOR
         self._attr_has_entity_name = False
 
@@ -76,7 +76,7 @@ class EasySmartDoorSensor(CoordinatorEntity, BinarySensorEntity):
             identifiers={(DOMAIN, equip["uuid"])},
             name=equip["nome"],
             manufacturer="Easy Smart",
-            model="Monitor Industrial v1.0.12",
+            model="Monitor Industrial v1.0.13",
         )
 
     @property
@@ -156,8 +156,8 @@ class EasySmartSirenSensor(CoordinatorEntity, BinarySensorEntity):
         self._equip = equip
         self._door_sensor = door_sensor # Referência ao sensor de porta
 
-        self._attr_unique_id = f"esm_sirene_{equip['uuid']}"
-        self._attr_name = f"{equip['nome']} Alerta Sirene"
+        self._attr_unique_id = f"esm_sirene_{door_sensor._config['uuid']}"
+        self._attr_name = f"{equip['nome']} Alerta Sirene ({door_sensor._config['ha_entity_id'].split('.')[-1]})"
         self._attr_device_class = BinarySensorDeviceClass.PROBLEM
         self._attr_has_entity_name = False
         self._attr_icon = "mdi:alarm-light-off"

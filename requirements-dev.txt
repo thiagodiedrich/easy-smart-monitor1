@@ -1,0 +1,4 @@
+# Development dependencies for IDE/linter support
+# These are NOT added to manifest.json as Home Assistant is the platform itself
+homeassistant>=2023.1.0
+voluptuous
