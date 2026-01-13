@@ -70,14 +70,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities(entities)
 
 
-class EasySmartTelemetrySensor(CoordinatorEntity, SensorEntity):
+class EasySmartTelemetrySensor(SensorEntity):
     """
     Sensor que monitora uma entidade de origem do HA e envia dados para a fila.
     Respeita 'Equipamento Ativo' e 'Intervalo de Coleta'.
     """
 
     def __init__(self, coordinator, entry, equip, sensor_cfg):
-        super().__init__(coordinator)
+        self.coordinator = coordinator
         self.entry = entry
         self._equip = equip
         self._config = sensor_cfg
@@ -137,8 +137,30 @@ class EasySmartTelemetrySensor(CoordinatorEntity, SensorEntity):
         return self._equip # Fallback
 
     async def async_added_to_hass(self) -> None:
-        """Registra o listener de mudança de estado."""
+        """Registra o listener de mudança de estado e inicializa o valor atual."""
         await super().async_added_to_hass()
+
+        # 1. Tenta inicializar o estado com o valor atual da entidade fonte
+        initial_state = self.hass.states.get(self._ha_source_entity)
+        if initial_state is not None and initial_state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            try:
+                raw_value = initial_state.state
+                if self._attr_device_class in [SensorDeviceClass.TEMPERATURE, SensorDeviceClass.POWER, SensorDeviceClass.VOLTAGE]:
+                    self._state = float(raw_value)
+                else:
+                    self._state = raw_value
+                
+                _LOGGER.debug(
+                    "Estado inicial recuperado para %s: %s", 
+                    self._ha_source_entity, 
+                    self._state
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Valor inicial inválido para %s: %s", 
+                    self._ha_source_entity, 
+                    initial_state.state
+                )
 
         @callback
         def _telemetry_listener(event):

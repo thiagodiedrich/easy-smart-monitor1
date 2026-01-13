@@ -51,14 +51,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities(entities)
 
 
-class EasySmartDoorSensor(CoordinatorEntity, BinarySensorEntity):
+class EasySmartDoorSensor(BinarySensorEntity):
     """
     Monitora o estado de uma porta física (aberto/fechado).
     Envia telemetria imediata para a fila.
     """
 
     def __init__(self, coordinator, entry, equip, sensor_cfg):
-        super().__init__(coordinator)
+        self.coordinator = coordinator
         self.entry = entry
         self._equip = equip
         self._config = sensor_cfg
@@ -99,8 +99,24 @@ class EasySmartDoorSensor(CoordinatorEntity, BinarySensorEntity):
         return self._equip
 
     async def async_added_to_hass(self) -> None:
-        """Registra listener para mudança de estado da porta física."""
+        """Registra listener para mudança de estado da porta física e inicializa estado."""
         await super().async_added_to_hass()
+
+        # 1. Tenta inicializar o estado com o valor atual da entidade fonte
+        initial_state = self.hass.states.get(self._ha_source_entity)
+        if initial_state is not None and initial_state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            is_open = initial_state.state == STATE_ON
+            self._is_open = is_open
+            if is_open:
+                # Nota: Não sabemos há quanto tempo está aberta, então usamos agora
+                # ou poderíamos tentar ler a propriedade last_changed
+                self._open_since = initial_state.last_changed.timestamp()
+            
+            _LOGGER.debug(
+                "Estado inicial recuperado para porta %s: %s", 
+                self._ha_source_entity, 
+                "aberta" if is_open else "fechada"
+            )
 
         @callback
         def _door_state_listener(event):
@@ -145,13 +161,13 @@ class EasySmartDoorSensor(CoordinatorEntity, BinarySensorEntity):
         )
 
 
-class EasySmartSirenSensor(CoordinatorEntity, BinarySensorEntity):
+class EasySmartSirenSensor(BinarySensorEntity):
     """
     Sensor lógico que dispara (ON) se a porta ficar aberta por mais tempo que o permitido.
     """
 
     def __init__(self, coordinator, entry, equip, door_sensor: EasySmartDoorSensor):
-        super().__init__(coordinator)
+        self.coordinator = coordinator
         self.entry = entry
         self._equip = equip
         self._door_sensor = door_sensor # Referência ao sensor de porta
