@@ -12,47 +12,63 @@
       },
       "management": {
         "title": "Painel de Controle",
-        "description": "Equipamentos cadastrados até agora: {equip_count}. O que deseja fazer?",
+        "description": "O que deseja fazer?",
         "menu_options": {
-          "add_equipment": "Cadastrar Novo Equipamento (Freezer/Câmara)",
-          "finish": "Finalizar Configuração e Iniciar Monitoramento"
+          "add_equipment": "Cadastrar Novo Equipamento",
+          "finish": "Finalizar e Iniciar Monitoramento"
         }
       },
       "add_equipment": {
         "title": "Dados do Equipamento",
-        "description": "Configure as informações básicas do equipamento físico.",
+        "description": "Configure as informações do freezer ou câmara fria.",
         "data": {
-          "nome": "Identificação (Ex: Freezer Bebidas 01)",
-          "local": "Localização (Ex: Corredor A)",
-          "intervalo_fila": "Intervalo de envio para API (segundos)"
+          "nome": "Identificação (Ex: Freezer 01)",
+          "local": "Localização (Ex: Cozinha)",
+          "intervalo_fila": "Sincronização da Fila (segundos)"
         }
       },
       "add_sensor": {
         "title": "Vincular Novo Sensor",
-        "description": "Associe uma entidade do Home Assistant a este equipamento.",
+        "description": "Associe uma entidade do HA a este equipamento.",
         "data": {
-          "ha_entity_id": "Entidade do HA (Sensor Físico)",
+          "ha_entity_id": "Entidade do HA",
           "tipo": "Tipo de Medição",
-          "add_another": "Vincular outro sensor a este mesmo equipamento?"
+          "add_another": "Vincular outro sensor a este equipamento?"
         }
       }
     },
     "error": {
-      "invalid_auth": "Falha na autenticação: Usuário ou senha incorretos.",
-      "cannot_connect": "Não foi possível conectar ao servidor da API.",
-      "unknown": "Erro inesperado no processamento dos dados."
+      "invalid_auth": "Usuário ou senha incorretos.",
+      "cannot_connect": "Falha ao conectar na API.",
+      "unknown": "Erro inesperado."
     },
     "abort": {
-      "no_equipments": "Operação abortada: Você deve cadastrar ao menos um equipamento.",
-      "already_configured": "Esta conta/serviço já está configurada neste Home Assistant."
+      "no_equipments": "Adicione ao menos um equipamento.",
+      "already_configured": "Esta conta já está configurada."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Ajustes de Sincronização",
+        "title": "Ajustes e Gestão",
+        "description": "Escolha uma ação para gerir sua integração.",
+        "menu_options": {
+          "add_more_equipment": "Adicionar Novo Equipamento (Expansão)",
+          "change_interval": "Alterar Intervalo de Sincronização"
+        }
+      },
+      "change_interval": {
+        "title": "Sincronização Global",
         "data": {
-          "update_interval": "Intervalo global de sincronização da fila (segundos)"
+          "update_interval": "Intervalo de envio da fila (segundos)"
+        }
+      },
+      "add_more_equipment": {
+        "title": "Novo Equipamento",
+        "description": "Insira os dados do novo equipamento que deseja monitorar.",
+        "data": {
+          "nome": "Nome do Equipamento",
+          "local": "Localização"
         }
       }
     }
@@ -61,12 +77,12 @@
     "tipo": {
       "options": {
         "temperatura": "Temperatura (°C)",
-        "porta": "Sensor de Porta (Aberto/Fechado)",
-        "energia": "Consumo de Energia (W)",
-        "tensao": "Tensão Elétrica (V)",
-        "corrente": "Corrente Elétrica (A)",
-        "humidade": "Umidade Relativa (%)",
-        "sirene": "Sirene de Alerta Local"
+        "porta": "Sensor de Porta",
+        "energia": "Energia (W)",
+        "tensao": "Tensão (V)",
+        "corrente": "Corrente (A)",
+        "humidade": "Umidade (%)",
+        "sirene": "Sirene de Alerta"
       }
     }
   }

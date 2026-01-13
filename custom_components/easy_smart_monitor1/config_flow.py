@@ -1,6 +1,6 @@
 import uuid
 import voluptuous as vol
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -18,12 +18,10 @@ from .const import (
 from .client import EasySmartClient
 
 class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Gerencia o fluxo de configuração do Easy Smart Monitor."""
-
+    """Gerencia o fluxo inicial de instalação."""
     VERSION = 1
 
     def __init__(self):
-        """Inicializa o fluxo."""
         self.data_temp: Dict[str, Any] = {"equipments": []}
         self.current_equipment: Dict[str, Any] = {}
 
@@ -117,7 +115,7 @@ class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_finish(self, user_input=None) -> FlowResult:
-        """Finaliza a configuração."""
+        """Finaliza a configuração inicial."""
         if not self.data_temp.get("equipments"):
             return self.async_abort(reason="no_equipments")
 
@@ -128,25 +126,65 @@ class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
-        """Retorna o manipulador de opções."""
+    def async_get_options_flow(config_entry):
         return EasySmartOptionsFlowHandler()
 
-
 class EasySmartOptionsFlowHandler(config_entries.OptionsFlow):
-    """Gerencia as opções da integração (Botão Configurar)."""
+    """Gerencia a edição de equipamentos via botão 'Configurar'."""
 
-    async def async_step_init(self, user_input: Dict[str, Any] = None) -> FlowResult:
-        """Gerencia o passo inicial das opções."""
+    def __init__(self):
+        self.new_data = {}
+
+    async def async_step_init(self, user_input=None) -> FlowResult:
+        """Menu de opções."""
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["add_more_equipment", "change_interval"]
+        )
+
+    async def async_step_change_interval(self, user_input=None) -> FlowResult:
+        """Ajusta apenas o tempo de sincronização."""
         if user_input is not None:
+            # Atualiza apenas as opções
             return self.async_create_entry(title="", data=user_input)
 
-        # Usamos self.config_entry (herdado) para ler os valores atuais
         current_interval = self.config_entry.options.get("update_interval", 60)
-
         return self.async_show_form(
-            step_id="init",
+            step_id="change_interval",
             data_schema=vol.Schema({
                 vol.Optional("update_interval", default=current_interval): int,
+            })
+        )
+
+    async def async_step_add_more_equipment(self, user_input=None) -> FlowResult:
+        """Permite adicionar um novo equipamento à lista existente."""
+        if user_input is not None:
+            # 1. Pegamos a lista atual de equipamentos
+            updated_equipments = list(self.config_entry.data.get("equipments", []))
+
+            # 2. Criamos o novo equipamento (sensores virão em um passo futuro se quiser expandir)
+            # Para simplificar aqui, adicionamos um equipamento básico
+            new_equip = {
+                "id": len(updated_equipments) + 1,
+                "uuid": str(uuid.uuid4()),
+                "nome": user_input["nome"],
+                "local": user_input["local"],
+                "intervalo_fila": 30,
+                "sensors": []
+            }
+            updated_equipments.append(new_equip)
+
+            # 3. Atualizamos o config_entry de forma permanente
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data={**self.config_entry.data, "equipments": updated_equipments}
+            )
+            return self.async_create_entry(title="", data=self.config_entry.options)
+
+        return self.async_show_form(
+            step_id="add_more_equipment",
+            data_schema=vol.Schema({
+                vol.Required("nome"): str,
+                vol.Required("local"): str,
             })
         )
