@@ -1,7 +1,7 @@
 {
   "domain": "easy_smart_monitor1",
   "name": "Easy Smart Monitor 1",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "documentation": "https://github.com/thiagodiedrich/easy_smart_monitor1",
   "issue_tracker": "https://github.com/thiagodiedrich/easy_smart_monitor1/issues",
   "requirements": ["aiohttp>=3.9.0"],

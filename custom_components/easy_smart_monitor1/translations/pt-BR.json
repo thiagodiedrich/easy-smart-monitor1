@@ -2,65 +2,71 @@
   "config": {
     "step": {
       "user": {
-        "title": "Ativação Easy Smart Monitor",
-        "description": "Insira suas credenciais da API para ativar a integração.",
+        "title": "Configuração Easy Smart Monitor",
+        "description": "Insira os dados da sua API. Se estiver em modo de teste, qualquer dado será aceito.",
         "data": {
-          "username": "Usuário",
-          "password": "Senha",
-          "api_host": "Host da API (ex: https://api.monitor.com)"
+          "api_host": "Endereço da API (Ex: http://192.168.1.10)",
+          "username": "Usuário da API",
+          "password": "Senha da API"
         }
       },
       "management": {
-        "title": "Gerenciamento de Dispositivos",
-        "description": "Escolha uma ação para seus equipamentos.",
+        "title": "Painel de Controle",
+        "description": "Equipamentos cadastrados até agora: {equip_count}. O que deseja fazer?",
         "menu_options": {
-          "add_equipment": "Adicionar Novo Equipamento",
-          "status_api": "Ver Status da Conexão e Token",
-          "finish": "Concluir e Salvar"
+          "add_equipment": "Cadastrar Novo Equipamento (Freezer/Câmara)",
+          "finish": "Finalizar Configuração e Iniciar Monitoramento"
         }
       },
       "add_equipment": {
-        "title": "Configurar Equipamento",
-        "description": "Defina os detalhes da geladeira/freezer.",
+        "title": "Dados do Equipamento",
+        "description": "Configure as informações básicas do equipamento físico.",
         "data": {
-          "nome": "Nome do Equipamento",
-          "local": "Local de Instalação",
-          "intervalo_fila": "Intervalo de atualização local (segundos)"
+          "nome": "Identificação (Ex: Freezer Bebidas 01)",
+          "local": "Localização (Ex: Corredor A)",
+          "intervalo_fila": "Intervalo de envio para API (segundos)"
         }
       },
       "add_sensor": {
-        "title": "Vincular Sensor",
-        "description": "Selecione um sensor do Home Assistant para monitorar este equipamento.",
+        "title": "Vincular Novo Sensor",
+        "description": "Associe uma entidade do Home Assistant a este equipamento.",
         "data": {
-          "ha_entity": "Entidade do Home Assistant",
-          "tipo": "Tipo de Sensor",
-          "ativo": "Sensor Ativado"
-        }
-      },
-      "status_api": {
-        "title": "Status do Sistema",
-        "description": "Informações de diagnóstico da integração.",
-        "data": {
-          "refresh_token": "Deseja atualizar o token agora?"
+          "ha_entity_id": "Entidade do HA (Sensor Físico)",
+          "tipo": "Tipo de Medição",
+          "add_another": "Vincular outro sensor a este mesmo equipamento?"
         }
       }
     },
     "error": {
-      "cannot_connect": "Falha ao conectar à API. Verifique o host.",
-      "invalid_auth": "Usuário ou senha inválidos.",
-      "unknown": "Erro inesperado ao processar a requisição."
+      "invalid_auth": "Falha na autenticação: Usuário ou senha incorretos.",
+      "cannot_connect": "Não foi possível conectar ao servidor da API.",
+      "unknown": "Erro inesperado no processamento dos dados."
     },
     "abort": {
-      "already_configured": "Este serviço já está configurado."
+      "no_equipments": "Operação abortada: Você deve cadastrar ao menos um equipamento.",
+      "already_configured": "Esta conta/serviço já está configurada neste Home Assistant."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Opções do Monitor",
+        "title": "Ajustes de Sincronização",
         "data": {
-          "api_interval": "Intervalo de envio para API (segundos)"
+          "update_interval": "Intervalo global de sincronização da fila (segundos)"
         }
+      }
+    }
+  },
+  "selector": {
+    "tipo": {
+      "options": {
+        "temperatura": "Temperatura (°C)",
+        "porta": "Sensor de Porta (Aberto/Fechado)",
+        "energia": "Consumo de Energia (W)",
+        "tensao": "Tensão Elétrica (V)",
+        "corrente": "Corrente Elétrica (A)",
+        "humidade": "Umidade Relativa (%)",
+        "sirene": "Sirene de Alerta Local"
       }
     }
   }
