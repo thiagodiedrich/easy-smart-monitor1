@@ -6,33 +6,45 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CONF_API_HOST, SENSOR_TYPES
+from .const import (
+    DOMAIN,
+    CONF_API_HOST,
+    SENSOR_TYPES,
+    TEST_MODE,
+    CONF_USERNAME,
+    CONF_PASSWORD
+)
 from .client import EasySmartClient
 
 class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Gerencia o fluxo de configuração para o Easy Smart Monitor."""
+    """Gerencia o fluxo de configuração do Easy Smart Monitor."""
 
     VERSION = 1
 
     def __init__(self):
-        """Inicializa o fluxo com armazenamento temporário."""
+        """Inicializa o fluxo com cache temporário."""
         self.data_temp: Dict[str, Any] = {
             "equipments": []
         }
         self.current_equipment: Dict[str, Any] = {}
 
     async def async_step_user(self, user_input=None) -> FlowResult:
-        """Passo 1: Ativação/Login via API."""
+        """Passo 1: Login/Ativação (Suporta Test Mode)."""
         errors = {}
 
         if user_input is not None:
+            if TEST_MODE:
+                # Bypass: Aceita qualquer credencial em modo de teste
+                self.data_temp.update(user_input)
+                return await self.async_step_management()
+
+            # Validação Real via API
             session = async_get_clientsession(self.hass)
             client = EasySmartClient(
                 user_input[CONF_API_HOST],
-                user_input["username"],
-                user_input["password"],
+                user_input[CONF_USERNAME],
+                user_input[CONF_PASSWORD],
                 session,
                 self.hass
             )
@@ -46,27 +58,27 @@ class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_API_HOST): str,
-                vol.Required("username"): str,
-                vol.Required("password"): vol.All(str, vol.Length(min=6)),
+                vol.Required(CONF_API_HOST, default="http://localhost"): str,
+                vol.Required(CONF_USERNAME, default="admin"): str,
+                vol.Required(CONF_PASSWORD, default="admin123"): str,
             }),
             errors=errors,
         )
 
     async def async_step_management(self, user_input=None) -> FlowResult:
-        """Passo 2: Menu de Gerenciamento."""
+        """Passo 2: Menu Principal."""
         return self.async_show_menu(
             step_id="management",
             menu_options={
                 "add_equipment": "Adicionar Novo Equipamento",
-                "finish": "Finalizar e Salvar Configurações"
+                "finish": "Finalizar Configuração"
             }
         )
 
     async def async_step_add_equipment(self, user_input=None) -> FlowResult:
-        """Passo 3: Cadastro de Equipamento."""
+        """Passo 3: Dados do Equipamento."""
         if user_input is not None:
-            # Gerar IDs automáticos conforme requisito
+            # Gerar IDs e UUIDs automáticos
             new_id = len(self.data_temp["equipments"]) + 1
             self.current_equipment = {
                 "id": new_id,
@@ -88,20 +100,13 @@ class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_add_sensor(self, user_input=None) -> FlowResult:
-        """Passo 4: Cadastro de Sensores para o Equipamento atual."""
+        """Passo 4: Vínculo de Sensores (Loop)."""
         if user_input is not None:
-            sensor_id = len(self.current_equipment["sensors"]) + 1
-            user_input["id"] = sensor_id
+            # Adicionar sensor ao equipamento atual
+            user_input["id"] = len(self.current_equipment["sensors"]) + 1
             user_input["uuid"] = str(uuid.uuid4())
-
             self.current_equipment["sensors"].append(user_input)
 
+            # Se o usuário marcar para adicionar outro, reinicia o passo
             if user_input.get("add_another"):
                 return await self.async_step_add_sensor()
-
-            # Adiciona o equipamento completo à lista e volta ao menu
-            self.data_temp["equipments"].append(self.current_equipment)
-            return await self.async_step_management()
-
-        # Lista todas as entidades do HA para o combo box
-        all
