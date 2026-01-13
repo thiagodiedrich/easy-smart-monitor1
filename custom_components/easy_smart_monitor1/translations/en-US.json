@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Easy Smart Monitor Activation",
+        "description": "Enter your API credentials to activate.",
+        "data": {
+          "username": "Username",
+          "password": "Password",
+          "api_host": "API Host"
+        }
+      },
+      "management": {
+        "title": "Device Management",
+        "menu_options": {
+          "add_equipment": "Add New Equipment",
+          "status_api": "View Connection Status",
+          "finish": "Finish and Save"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "domain": "easy_smart_monitor1",
+  "name": "Easy Smart Monitor 1",
+  "codeowners": ["@thiagodiedrich"],
+  "config_flow": true,
+  "documentation": "https://github.com/thiagodiedrich/easy_smart_monitor1",
+  "iot_class": "cloud_polling",
+  "version": "1.0.0",
+  "requirements": ["aiohttp>=3.9.0"]
+}
