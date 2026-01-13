@@ -2,130 +2,106 @@
   "config": {
     "step": {
       "user": {
-        "title": "Easy Smart Monitor: Autenticação",
-        "description": "Configure o acesso à API central para envio das métricas de refrigeração.",
+        "title": "Configuração Easy Smart Monitor",
+        "description": "Insira os dados de acesso à API do seu servidor de monitoramento central.",
         "data": {
-          "api_host": "Servidor da API (Ex: http://192.168.1.50:5000)",
+          "api_host": "URL do Servidor (ex: http://192.168.1.10:5000)",
           "username": "Usuário da API",
-          "password": "Senha de Acesso"
-        }
-      },
-      "management": {
-        "title": "Painel de Ativos",
-        "description": "Gerencie a frota de equipamentos antes de finalizar a instalação.",
-        "menu_options": {
-          "add_equipment": "Cadastrar Novo Equipamento",
-          "finish": "Concluir Configuração"
+          "password": "Senha da API"
         }
       },
       "add_equipment": {
-        "title": "Dados do Ativo",
-        "description": "Identifique o equipamento (Ex: Freezer 01).",
+        "title": "Cadastrar Equipamento",
+        "description": "Defina o nome e local do freezer ou geladeira que será monitorado.",
         "data": {
-          "nome": "Nome do Equipamento",
-          "local": "Localização (Ex: Cozinha)",
-          "intervalo_fila": "Sincronização Local (Segundos)"
+          "nome": "Nome do Equipamento (ex: Freezer Carnes)",
+          "local": "Local/Área (ex: Cozinha Sul)"
         }
       },
       "add_sensor": {
-        "title": "Vincular Sensores",
-        "description": "Selecione uma entidade do Home Assistant para monitorar.",
+        "title": "Vincular Telemetria",
+        "description": "Selecione as entidades do Home Assistant que representam os sensores físicos deste equipamento.",
         "data": {
           "ha_entity_id": "Entidade do HA",
           "tipo": "Tipo de Grandeza",
-          "add_another": "Vincular outro sensor a este equipamento?"
+          "add_another": "Deseja vincular outro sensor a este mesmo equipamento?"
         }
       }
     },
-    "error": {
-      "invalid_auth": "Credenciais inválidas. Verifique usuário e senha.",
-      "cannot_connect": "Não foi possível conectar ao host da API.",
-      "unknown": "Ocorreu um erro inesperado durante a configuração."
-    },
     "abort": {
-      "no_equipments": "Operação cancelada: nenhum equipamento foi cadastrado.",
-      "already_configured": "Este serviço já está configurado neste Home Assistant."
+      "no_equipments": "Operação cancelada: você deve cadastrar ao menos um equipamento.",
+      "already_configured": "Este host de API já está configurado neste Home Assistant."
+    },
+    "error": {
+      "invalid_auth": "Autenticação falhou: verifique usuário e senha.",
+      "cannot_connect": "Não foi possível estabelecer conexão com o servidor API.",
+      "unknown": "Ocorreu um erro inesperado na configuração."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Configurações Easy Smart",
-        "description": "O que você deseja fazer na integração?",
+        "title": "Gerenciar Equipamentos",
+        "description": "Escolha uma ação para gerenciar seus freezers e sensores.",
         "menu_options": {
-          "manage_sensors": "Gerenciar Sensores",
-          "add_more_equipment": "Adicionar Novo Equipamento",
-          "remove_equipment": "Remover Equipamento",
-          "change_interval": "Ajustar Intervalo de Sincronização"
+          "manage_sensors": "Editar Sensores de um Equipamento",
+          "add_more_equipment": "Cadastrar Novo Equipamento",
+          "remove_equipment": "Remover Equipamento Existente",
+          "change_interval": "Ajustar Intervalo de Sincronia"
+        }
+      },
+      "change_interval": {
+        "title": "Configurações de Tempo",
+        "data": {
+          "update_interval": "Intervalo de envio da fila (em segundos)"
         }
       },
       "manage_sensors": {
         "title": "Selecionar Equipamento",
-        "description": "Escolha qual equipamento deseja editar os sensores.",
         "data": {
-          "equip_uuid": "Equipamento"
-        }
-      },
-      "sensor_menu": {
-        "title": "Opções de Sensor",
-        "description": "O que deseja fazer com os sensores deste equipamento?",
-        "menu_options": {
-          "add_sensor_to_equip": "Adicionar Novo Sensor",
-          "remove_sensor_from_equip": "Remover Sensor Existente"
+          "equip_uuid": "Escolha o Freezer para editar"
         }
       },
       "add_sensor_to_equip": {
-        "title": "Adicionar Novo Sensor",
-        "description": "Vincule uma nova entidade a este equipamento.",
+        "title": "Novo Vínculo",
+        "description": "Adicione um novo sensor ao equipamento selecionado.",
         "data": {
-          "ha_entity_id": "Entidade do HA",
-          "tipo": "Tipo de Grandeza"
+          "ha_entity_id": "Entidade de Origem",
+          "tipo": "Grandeza do Sensor"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "diagnostico_conexao": {
+        "name": "Status da Conexão API",
+        "state": {
+          "Conectado": "Conectado",
+          "Erro de Rede": "Erro de Rede",
+          "Pendente": "Aguardando Sincronia"
         }
       },
-      "remove_sensor_from_equip": {
-        "title": "Remover Sensor",
-        "description": "Selecione o sensor que deseja desvincular permanentemente.",
-        "data": {
-          "sensor_uuid": "Selecionar Sensor"
-        }
+      "diagnostico_sincro": {
+        "name": "Última Sincronização"
       },
-      "remove_equipment": {
-        "title": "Excluir Equipamento",
-        "description": "AVISO: Isso removerá o dispositivo e todas as suas entidades do Home Assistant.",
-        "data": {
-          "equip_uuid": "Selecionar Equipamento"
-        }
-      },
-      "add_more_equipment": {
-        "title": "Novo Equipamento",
-        "description": "Insira as informações do novo ativo.",
-        "data": {
-          "nome": "Nome do Equipamento",
-          "local": "Localização"
-        }
-      },
-      "change_interval": {
-        "title": "Intervalo de Sincronização",
-        "description": "Tempo de despacho da fila para a API.",
-        "data": {
-          "update_interval": "Intervalo (Segundos)"
+      "tipo": {
+        "state": {
+          "temperatura": "Temperatura",
+          "energia": "Consumo (Watts)",
+          "tensao": "Tensão (Volts)",
+          "corrente": "Corrente (Amperes)",
+          "humidade": "Umidade",
+          "status": "Estado de Operação"
         }
       }
     },
-    "abort": {
-      "no_sensors_to_remove": "Este equipamento não possui sensores para remover."
-    }
-  },
-  "selector": {
-    "tipo": {
-      "options": {
-        "temperatura": "Temperatura (°C)",
-        "porta": "Estado de Porta (Aberto/Fechado)",
-        "energia": "Potência Ativa (W)",
-        "tensao": "Tensão Elétrica (V)",
-        "corrente": "Corrente (A)",
-        "humidade": "Umidade Relativa (%)",
-        "sirene": "Sirene de Alerta (Segurança)"
+    "binary_sensor": {
+      "sirene": {
+        "name": "Alerta de Sirene"
+      },
+      "porta": {
+        "name": "Estado da Porta"
       }
     }
   }

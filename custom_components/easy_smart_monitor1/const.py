@@ -1,47 +1,57 @@
 """Constantes para a integração Easy Smart Monitor."""
 
-# Domínio da integração (Deve ser o nome exato da pasta em custom_components)
+# Identificação da Integração
 DOMAIN = "easy_smart_monitor1"
-
-# Versão da Release
-VERSION = "1.0.9"
+VERSION = "1.0.10"
 
 # Modo de Operação
-# True: Ignora validação real de API e simula envios no log (Desenvolvimento)
-# False: Modo de produção com autenticação e sincronização real
+# True: Simula sucesso na API (útil para testes de interface)
+# False: Requer servidor de API ativo e funcional
 TEST_MODE = True
 
-# Chaves de Configuração de Dados (armazenadas no config_entry.data)
+# Chaves de Configuração (Salvas no entry.data)
 CONF_API_HOST = "api_host"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 
-# Configurações de Lógica de Sensores e Alertas
-# Tempo (segundos) de porta aberta necessário para disparar a Sirene de segurança
-SIREN_DELAY = 60
+# Configurações de Tempo e Sincronização
+DEFAULT_UPDATE_INTERVAL = 60  # Segundos entre envios da fila
+SIREN_DELAY = 60              # Segundos de porta aberta para soar o alarme
+RETRY_DELAY = 5               # Segundos de espera após falha de rede
+MAX_RETRIES = 3               # Máximo de tentativas de reenvio antes de desistir
 
-# Intervalo padrão de sincronização da fila com a API (segundos)
-DEFAULT_UPDATE_INTERVAL = 60
-
-# Lista exata de tipos de sensores suportados pela integração
-# IMPORTANTE: Estes nomes devem ter chaves correspondentes no pt-BR.json
+# Tipos de Sensores Suportados
+# Organizados por categoria para facilitar o processamento no sensor.py
 SENSOR_TYPES = [
+    # Telemetria (Numéricos)
     "temperatura",
     "energia",
     "tensao",
     "corrente",
     "humidade",
-    "status",     # Suporte a textos (ex: power_on, standby, online)
-    "porta",      # Binário (on/off)
-    "sirene"      # Binário de segurança (triggered/off)
+
+    # Status (Texto e Binário)
+    "status",
+    "porta",
+    "sirene",
+
+    # Diagnóstico de Sistema (Auto-gerados na v1.0.10)
+    "diagnostico_conexao",
+    "diagnostico_sincro"
 ]
 
-# Nome do arquivo de persistência local dentro da pasta /config/.storage/
-# Garante que dados não enviados durante quedas de internet sejam salvos
+# Persistência e Comunicação
 STORAGE_FILE = "easy_smart_monitor1_queue.json"
-
-# Cabeçalhos comuns para chamadas de API
 HEADERS = {
     "Content-Type": "application/json",
     "User-Agent": f"EasySmartMonitor/{VERSION} (HomeAssistant)"
+}
+
+# Definições de Unidades (Opcional, mas útil para centralizar)
+UNITS = {
+    "temperatura": "°C",
+    "energia": "W",
+    "tensao": "V",
+    "corrente": "A",
+    "humidade": "%"
 }

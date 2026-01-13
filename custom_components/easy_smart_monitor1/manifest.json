@@ -7,7 +7,7 @@
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/thiagodiedrich/easy_smart_monitor1/issues",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "dependencies": ["http"],
   "requirements": []
 }

@@ -1,191 +1,219 @@
-import logging
-import json
-import os
 import aiohttp
 import asyncio
+import logging
+import os
+import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Dict, Any, Optional
 
+# Importações oficiais do Core para persistência atômica segura
+from homeassistant.helpers.json import save_json
+from homeassistant.util.json import load_json
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import TEST_MODE
+from .const import (
+    DOMAIN,
+    STORAGE_FILE,
+    TEST_MODE,
+    MAX_RETRIES,
+    RETRY_DELAY,
+    HEADERS
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 class EasySmartClient:
     """
-    Gerenciador de comunicação resiliente com a API Easy Smart.
-    Responsável pela autenticação, gestão de fila em memória e persistência em disco.
+    Cliente API exaustivo com persistência nativa HA,
+    gestão de concorrência e lógica de re-tentativa (Retry).
     """
 
     def __init__(self, host: str, username: str, password: str, session: aiohttp.ClientSession, hass: HomeAssistant):
-        """Inicializa o cliente com os parâmetros de conexão."""
+        """Inicializa o cliente com caminhos de armazenamento protegidos pelo Core do HA."""
         self.host = host.rstrip("/")
         self.username = username
         self.password = password
         self.session = session
         self.hass = hass
-        self.token: Optional[str] = None
         self.queue: List[Dict[str, Any]] = []
-        self._auth_lock = asyncio.Lock()
+        self.token: Optional[str] = None
 
-        # Caminho do arquivo de backup no diretório .storage para resiliência de dados
-        self.storage_path = self.hass.config.path(".storage", "easy_smart_monitor1_queue.json")
-        _LOGGER.debug("Cliente EasySmart inicializado. Storage: %s", self.storage_path)
+        # Define o caminho absoluto dentro de /config/.storage/
+        self.storage_path = hass.config.path(".storage", STORAGE_FILE)
+
+        # Lock de concorrência para evitar que múltiplos envios ocorram simultaneamente
+        self._lock = asyncio.Lock()
+
+        _LOGGER.debug("Cliente Easy Smart inicializado. Caminho de armazenamento: %s", self.storage_path)
 
     async def authenticate(self) -> bool:
-        """
-        Realiza a autenticação na API para obter o token Bearer.
-        Implementa Lock para evitar múltiplas tentativas simultâneas.
-        """
+        """Realiza a autenticação e obtém o Bearer Token para as requisições."""
         if TEST_MODE:
-            _LOGGER.info("[TEST MODE] Ignorando autenticação real. Token simulado gerado.")
-            self.token = "fake_test_token_v1_0_6"
+            _LOGGER.info("MODO TESTE: Simulando sucesso na autenticação.")
+            self.token = "token_teste_v10_estavel"
             return True
 
-        async with self._auth_lock:
-            _LOGGER.debug("Iniciando processo de autenticação para o usuário: %s", self.username)
-            url = f"{self.host}/api/login"
-            payload = {
-                "username": self.username,
-                "password": self.password,
-                "client_id": "ha_integration_v1"
-            }
+        url = f"{self.host}/auth/login"
+        payload = {
+            "username": self.username,
+            "password": self.password
+        }
 
-            try:
-                # Caso a sessão tenha sido perdida, recuperamos a global do HA
-                if self.session is None or self.session.closed:
-                    self.session = async_get_clientsession(self.hass)
+        _LOGGER.debug("Enviando requisição de login para: %s", url)
+        try:
+            async with self.session.post(url, json=payload, timeout=15) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    self.token = data.get("access_token")
+                    _LOGGER.info("Autenticação na API Easy Smart realizada com sucesso.")
+                    return True
 
-                async with self.session.post(url, json=payload, timeout=15) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        self.token = data.get("token")
-                        if self.token:
-                            _LOGGER.info("Autenticação bem-sucedida. Token armazenado.")
-                            return True
-                        _LOGGER.error("API retornou 200, mas o campo 'token' está ausente.")
-                    elif response.status == 401:
-                        _LOGGER.error("Credenciais inválidas fornecidas para a API.")
-                    else:
-                        _LOGGER.error("Falha na autenticação. Status: %s. Resposta: %s",
-                                     response.status, await response.text())
-            except asyncio.TimeoutError:
-                _LOGGER.error("Timeout durante a autenticação na API.")
-            except Exception as e:
-                _LOGGER.error("Erro catastrófico durante a autenticação: %s", str(e))
+                _LOGGER.error(
+                    "Falha na autenticação. Status: %s. Verifique se as credenciais estão corretas.",
+                    response.status
+                )
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout durante a tentativa de autenticação. Servidor API lento ou inacessível.")
+        except aiohttp.ClientError as e:
+            _LOGGER.error("Erro de conexão durante a autenticação: %s", e)
+        except Exception as e:
+            _LOGGER.error("Erro inesperado no processo de login: %s", e)
 
-            return False
+        return False
 
-    def add_to_queue(self, data: Dict[str, Any]) -> None:
-        """
-        Adiciona uma nova leitura à fila de processamento.
-        Imediatamente agenda a persistência em disco para evitar perda de dados.
-        """
-        # Garante que o timestamp esteja presente
+    def add_to_queue(self, data: Dict[str, Any]):
+        """Adiciona dados à fila de telemetria e garante a persistência física imediata."""
+        if not isinstance(data, dict):
+            _LOGGER.error("Erro de formato: Tentativa de enfileirar dado que não é um dicionário: %s", data)
+            return
+
+        # Garante a integridade do timestamp para o histórico da API
         if "timestamp" not in data:
             data["timestamp"] = datetime.now().isoformat()
 
         self.queue.append(data)
-        _LOGGER.debug("Novo registro adicionado à fila. Tamanho atual: %s", len(self.queue))
+        _LOGGER.debug("Evento de telemetria enfileirado localmente. Itens na fila: %s", len(self.queue))
 
-        # Agenda a gravação em disco de forma não bloqueante
-        self.hass.add_job(self.save_queue_to_disk)
+        # Agenda a gravação para o disco de forma assíncrona (Thread-safe)
+        self.hass.add_job(self._save_queue_to_disk)
 
-    async def send_queue(self) -> bool:
+    async def sync_queue(self) -> bool:
         """
-        Tenta despachar a fila acumulada para a API.
-        Gerencia reautenticação automática e limpeza de fila após sucesso.
+        Sincroniza a fila acumulada com o servidor remoto.
+        Implementa Retry, Renovação de Token automático e tratamento de erros de rede.
         """
         if not self.queue:
-            _LOGGER.debug("Fila vazia, pulando ciclo de envio.")
+            _LOGGER.debug("Sincronização ignorada: Fila vazia.")
             return True
 
-        _LOGGER.debug("Iniciando despacho de fila com %s registros.", len(self.queue))
+        # O Lock garante que se um ciclo de rede demorar, o próximo não atropele o atual
+        async with self._lock:
+            if TEST_MODE:
+                _LOGGER.info("MODO TESTE: Simulação de envio bulk de %s itens concluída.", len(self.queue))
+                self.queue.clear()
+                self._save_queue_to_disk()
+                return True
 
-        if TEST_MODE:
-            _LOGGER.info("[TEST MODE] Simulação de despacho em lote enviada com sucesso.")
-            # Em modo teste, apenas limpamos a fila para simular sucesso
-            self.queue.clear()
-            self.save_queue_to_disk()
-            return True
-
-        # Garante que temos um token antes de prosseguir
-        if not self.token:
-            if not await self.authenticate():
-                _LOGGER.warning("Despacho cancelado por falta de autenticação válida.")
+            # Se não temos token, tentamos autenticar antes de prosseguir
+            if not self.token and not await self.authenticate():
+                _LOGGER.warning("Sincronização cancelada: Falha crítica na autenticação.")
                 return False
 
-        url = f"{self.host}/api/monitor/batch"
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-            "User-Agent": "HomeAssistant-EasySmart/1.0.6"
-        }
+            attempts = 0
+            while attempts < MAX_RETRIES:
+                try:
+                    url = f"{self.host}/api/telemetria/bulk"
+                    auth_headers = {
+                        **HEADERS,
+                        "Authorization": f"Bearer {self.token}"
+                    }
 
+                    _LOGGER.debug("Tentativa de envio bulk %s/%s para %s", attempts + 1, MAX_RETRIES, url)
+
+                    async with self.session.post(
+                        url,
+                        json=self.queue,
+                        headers=auth_headers,
+                        timeout=25
+                    ) as response:
+
+                        if response.status in [200, 201]:
+                            _LOGGER.info("Sucesso! %s eventos de telemetria enviados para a API central.", len(self.queue))
+                            self.queue.clear()
+                            self._save_queue_to_disk()
+                            return True
+
+                        if response.status == 401:
+                            _LOGGER.warning("Token expirado (401). Tentando renovação de credenciais...")
+                            if await self.authenticate():
+                                attempts += 1
+                                continue # Tenta o envio novamente com o novo token
+
+                        _LOGGER.warning(
+                            "Resposta negativa da API (Status %s). Tentativa %s/%s",
+                            response.status, attempts + 1, MAX_RETRIES
+                        )
+
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    _LOGGER.warning(
+                        "Falha de rede na comunicação com a API: %s. Aguardando %ss para re-tentativa...",
+                        e, RETRY_DELAY
+                    )
+
+                attempts += 1
+                if attempts < MAX_RETRIES:
+                    await asyncio.sleep(RETRY_DELAY)
+
+            _LOGGER.error("Falha persistente na sincronização após %s tentativas. Dados mantidos para o próximo ciclo.", MAX_RETRIES)
+            return False
+
+    def _save_queue_to_disk(self):
+        """
+        Gravação robusta da fila usando helpers oficiais do HA.
+        Resolve problemas de permissão e latência de I/O em containers.
+        """
         try:
-            async with self.session.post(url, json=self.queue, headers=headers, timeout=30) as response:
-                if response.status in [200, 201]:
-                    count = len(self.queue)
-                    self.queue.clear() # Sucesso total: limpa memória
-                    self.save_queue_to_disk() # Sucesso total: limpa disco
-                    _LOGGER.info("Sincronização concluída. %s registros processados pela API.", count)
-                    return True
+            storage_dir = os.path.dirname(self.storage_path)
+            if not os.path.exists(storage_dir):
+                os.makedirs(storage_dir, exist_ok=True)
 
-                if response.status == 401:
-                    _LOGGER.warning("Token expirado detectado durante envio. Resetando credenciais.")
-                    self.token = None
-                    return False
-
-                _LOGGER.warning("API rejeitou a fila. Status: %s. Detalhes: %s",
-                               response.status, await response.text())
-        except aiohttp.ClientConnectorError:
-            _LOGGER.error("Erro de conexão: Não foi possível alcançar o host %s", self.host)
+            # save_json do HA faz a escrita atômica internamente (.tmp -> rename)
+            save_json(self.storage_path, self.queue)
+            _LOGGER.debug("Estado da fila persistido com sucesso no diretório .storage.")
         except Exception as e:
-            _LOGGER.error("Erro inesperado durante o envio da fila: %s", str(e))
+            _LOGGER.error("Erro crítico ao salvar dados da fila no disco: %s", e)
 
-        return False
-
-    def save_queue_to_disk(self) -> None:
-        """
-        Sincroniza a fila em memória com o arquivo físico no diretório .storage.
-        Utiliza escrita atômica simples para garantir integridade.
-        """
-        try:
-            # Se a fila estiver vazia, removemos o arquivo para economizar espaço
-            if not self.queue:
-                if os.path.exists(self.storage_path):
-                    os.remove(self.storage_path)
-                return
-
-            with open(self.storage_path, "w", encoding="utf-8") as f:
-                json.dump(self.queue, f, ensure_ascii=False, indent=2)
-            _LOGGER.debug("Backup da fila atualizado no disco.")
-        except Exception as e:
-            _LOGGER.error("Falha ao persistir fila no disco: %s", str(e))
-
-    async def load_queue_from_disk(self) -> None:
-        """
-        Recupera a fila salva no disco após um reinício do Home Assistant.
-        Essencial para o funcionamento resiliente prometido na v1.0.6.
-        """
+    async def load_queue_from_disk(self):
+        """Carrega a fila persistida durante o boot da integração."""
         if not os.path.exists(self.storage_path):
-            _LOGGER.debug("Nenhum backup de fila encontrado para carregar.")
+            _LOGGER.debug("Arquivo de fila pendente não encontrado. Iniciando nova fila.")
             return
 
-        _LOGGER.info("Localizado backup de fila em disco. Iniciando recuperação...")
-
         try:
-            def _read_file():
-                with open(self.storage_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+            # Carrega usando o utilitário nativo do HA em uma thread separada
+            data = await self.hass.async_add_executor_job(
+                load_json, self.storage_path
+            )
 
-            data = await self.hass.async_add_executor_job(_read_file)
             if isinstance(data, list):
                 self.queue = data
-                _LOGGER.info("Recuperação concluída: %s registros voltaram para a fila.", len(self.queue))
+                _LOGGER.info("Persistência carregada: %s eventos restaurados para a fila.", len(self.queue))
             else:
-                _LOGGER.warning("Arquivo de backup corrompido ou em formato inválido.")
+                _LOGGER.warning("Arquivo de fila encontrado com formato inválido. Iniciando fila limpa.")
         except Exception as e:
-            _LOGGER.error("Erro ao carregar fila do disco: %s", str(e))
+            _LOGGER.error("Falha ao carregar fila do armazenamento local: %s", e)
+            # Em caso de corrupção física do JSON, gera backup para não travar o sistema
+            if os.path.exists(self.storage_path):
+                backup_name = f"{self.storage_path}.corrupt_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                os.rename(self.storage_path, backup_name)
+                _LOGGER.warning("O arquivo corrompido foi movido para: %s", backup_name)
+
+    def get_diagnostics(self) -> Dict[str, Any]:
+        """Extrai métricas de saúde interna para os sensores de diagnóstico."""
+        return {
+            "queue_size": len(self.queue),
+            "is_authenticated": self.token is not None,
+            "api_host": self.host,
+            "test_mode": TEST_MODE,
+            "storage_location": self.storage_path
+        }
