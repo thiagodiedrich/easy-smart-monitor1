@@ -184,13 +184,16 @@ class EasySmartOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
     async def async_step_change_interval(self, user_input=None):
+        errors = {}
         if user_input is not None:
-            # Trava de segurança: Mínimo de 60 segundos para não prejudicar o desempenho do Home Assistant e da API Cloud
-            interval = max(int(user_input.get(CONF_UPDATE_INTERVAL, 60)), 60)
-            self.updated_data[CONF_UPDATE_INTERVAL] = interval
-            # Salva diretamente no entry.data do Home Assistant e recarrega
-            self.hass.config_entries.async_update_entry(self.config_entry, data=self.updated_data)
-            return self.async_create_entry(title="", data={})
+            interval = int(user_input.get(CONF_UPDATE_INTERVAL, 0))
+            if interval < 60:
+                errors["base"] = "intervalo_envio_baixo"
+            else:
+                self.updated_data[CONF_UPDATE_INTERVAL] = interval
+                # Salva diretamente no entry.data do Home Assistant e recarrega
+                self.hass.config_entries.async_update_entry(self.config_entry, data=self.updated_data)
+                return self.async_create_entry(title="", data={})
 
         current_interval = self.updated_data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
                           
@@ -198,8 +201,9 @@ class EasySmartOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="change_interval",
             data_schema=vol.Schema({
                 vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval):
-                    vol.All(vol.Coerce(int), vol.Range(min=60, max=3600)),
+                    vol.All(vol.Coerce(int)), # Removemos vol.Range para tratar manualmente com tradução
             }),
+            errors=errors
         )
 
     async def async_step_manage_sensors(self, user_input=None):

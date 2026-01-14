@@ -6,6 +6,8 @@
     "error": {
       "cannot_connect": "Falha ao conectar ao servidor",
       "invalid_auth": "Usuário ou senha inválidos",
+      "intervalo_baixo": "O intervalo de envio não pode ser menor que 60 segundos.",
+      "intervalo_envio_baixo": "O intervalo de envio não pode ser menor que 60 segundos.",
       "unknown": "Erro inesperado"
     },
     "step": {
@@ -46,6 +48,10 @@
     }
   },
   "options": {
+    "error": {
+      "intervalo_baixo": "O intervalo de envio não pode ser menor que 60 segundos.",
+      "intervalo_envio_baixo": "O intervalo de envio não pode ser menor que 60 segundos."
+    },
     "step": {
       "init": {
         "title": "Gerenciamento Easy Smart Monitor",
@@ -147,6 +153,10 @@
       "ativo": { "name": "Equipamento Ativo" },
       "sirene_ativa": { "name": "Sirene Ativa" }
     }
+  },
+  "exceptions": {
+    "intervalo_coleta_baixo": "O intervalo de coleta não pode ser menor que 30 segundos para garantir o desempenho do sistema.",
+    "tempo_porta_baixo": "O tempo de porta aberta não pode ser menor que 10 segundos."
   },
   "selector": {
     "sensor_types": {

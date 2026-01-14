@@ -6,6 +6,8 @@
     "error": {
       "cannot_connect": "Failed to connect to server",
       "invalid_auth": "Invalid username or password",
+      "intervalo_baixo": "The sync interval cannot be less than 60 seconds.",
+      "intervalo_envio_baixo": "The sync interval cannot be less than 60 seconds.",
       "unknown": "Unexpected error"
     },
     "step": {
@@ -46,6 +48,10 @@
     }
   },
   "options": {
+    "error": {
+      "intervalo_baixo": "The sync interval cannot be less than 60 seconds.",
+      "intervalo_envio_baixo": "The sync interval cannot be less than 60 seconds."
+    },
     "step": {
       "init": {
         "title": "Easy Smart Monitor Management",
@@ -147,6 +153,10 @@
       "ativo": { "name": "Equipment Active" },
       "sirene_ativa": { "name": "Siren Active" }
     }
+  },
+  "exceptions": {
+    "intervalo_coleta_baixo": "The collection interval cannot be less than 30 seconds to ensure system performance.",
+    "tempo_porta_baixo": "The door open time cannot be less than 10 seconds."
   },
   "selector": {
     "sensor_types": {

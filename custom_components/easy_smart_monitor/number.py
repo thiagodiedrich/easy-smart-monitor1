@@ -3,6 +3,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.exceptions import ServiceValidationError
 
 from .const import (
     DOMAIN,
@@ -16,8 +17,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entities = []
     for equip in equipments:
-        # Trava na UI: Mínimo de 30 segundos para não prejudicar o desempenho do Home Assistant
-        entities.append(EasySmartNumber(coordinator, entry, equip, "intervalo_coleta", "Intervalo de Coleta", 30, 3600, 1, "s", "mdi:timer-cog"))
+        # Trava na UI: Permitimos o ajuste, mas validamos no código para garantir o mínimo de 30s
+        entities.append(EasySmartNumber(coordinator, entry, equip, "intervalo_coleta", "Intervalo de Coleta", 1, 3600, 1, "s", "mdi:timer-cog"))
         
         # Verifica se o equipamento possui sensores do tipo 'porta' e 'sirene'
         sensors = equip.get("sensors", [])
@@ -25,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         has_siren = any(s.get("tipo") == "sirene" for s in sensors)
 
         if has_door and has_siren:
-            entities.append(EasySmartNumber(coordinator, entry, equip, "tempo_porta", "Tempo Porta Aberta", 10, 600, 1, "s", "mdi:door-open"))
+            entities.append(EasySmartNumber(coordinator, entry, equip, "tempo_porta", "Tempo Porta Aberta", 1, 600, 1, "s", "mdi:door-open"))
 
     async_add_entities(entities)
 
@@ -55,6 +56,20 @@ class EasySmartNumber(NumberEntity):
         return DEFAULT_INTERVALO_COLETA
 
     async def async_set_native_value(self, value: float):
+        # Validação de segurança para o Intervalo de Coleta
+        if self.key == "intervalo_coleta" and value < 30:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="intervalo_coleta_baixo"
+            )
+        
+        # Validação de segurança para o Tempo de Porta
+        if self.key == "tempo_porta" and value < 10:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="tempo_porta_baixo"
+            )
+
         new_data = dict(self.entry.data)
         for e in new_data["equipments"]:
             if e["uuid"] == self.equip["uuid"]:
