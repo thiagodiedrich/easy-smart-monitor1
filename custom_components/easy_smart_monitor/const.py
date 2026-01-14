@@ -90,8 +90,8 @@ SENSOR_TYPES = [
 
 # Estados de Diagnóstico (Traduções de Status)
 DIAG_CONEXAO_OK = "Conectado"
-DIAG_CONEXAO_ERR = "Erro de Rede"
-DIAG_SERVER_ERR = "Erro de Servidor"
+DIAG_INTERNET_ERR = "Falha de Internet"
+DIAG_SERVER_ERR = "Falha de Servidor"
 DIAG_TIMEOUT_RETRY = "Timeout/Retry"
 DIAG_PENDENTE = "Pendente"
 

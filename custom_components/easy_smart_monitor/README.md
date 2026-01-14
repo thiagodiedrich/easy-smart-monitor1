@@ -74,8 +74,8 @@ Para adicionar novos freezers ou remover sensores, clique em **Configurar** no c
 
 ### v1.2.0 (Estável)
 * [x] **Diagnóstico Inteligente:** Novo status `Timeout/Retry` para feedback visual imediato durante tentativas de conexão.
-* [x] **Teste de Conectividade (Ping):** O sistema agora diferencia "Erro de Rede" (internet local) de "Erro de Servidor" (API offline) usando ping automático para `8.8.8.8`.
-* [x] **Estados de Conexão Estendidos:** Adicionados novos estados e traduções para o sensor de diagnóstico de rede.
+* [x] **Teste de Conectividade (Ping):** O sistema agora diferencia "Falha de Internet" (internet local) de "Falha de Servidor" (API offline) usando ping automático para `8.8.8.8`.
+* [x] **Estados de Conexão Estendidos:** Adicionados novos estados e traduções revisadas para o sensor de diagnóstico de rede.
 
 ### v1.1.0 (Estável)
 * [x] **Sincronização Robusta:** Implementação de timer interno no Coordenador para garantir o envio cloud mesmo sem interface aberta.

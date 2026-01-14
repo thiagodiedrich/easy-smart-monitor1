@@ -16,7 +16,7 @@ from .const import (
     ATTR_LAST_SYNC,
     ATTR_QUEUE_SIZE,
     DIAG_CONEXAO_OK,
-    DIAG_CONEXAO_ERR,
+    DIAG_INTERNET_ERR,
     DIAG_SERVER_ERR,
     DIAG_TIMEOUT_RETRY,
     DIAG_PENDENTE,
@@ -111,10 +111,10 @@ class EasySmartCoordinator(DataUpdateCoordinator):
                 # 2. Se falhar, verifica se o problema é a Internet ou o Servidor
                 if await self.client.check_internet():
                     self._last_status = DIAG_SERVER_ERR
-                    _LOGGER.warning("Internet OK, mas API fora do ar (Erro de Servidor).")
+                    _LOGGER.warning("Internet OK, mas API fora do ar (Falha de Servidor).")
                 else:
-                    self._last_status = DIAG_CONEXAO_ERR
-                    _LOGGER.warning("Sem conexão com a Internet (Erro de Rede).")
+                    self._last_status = DIAG_INTERNET_ERR
+                    _LOGGER.warning("Sem conexão com a Internet (Falha de Internet).")
 
             # Retorna o dicionário de dados que alimenta os sensores de diagnóstico
             return self._get_diagnostics_payload()
@@ -130,7 +130,7 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             if await self.client.check_internet():
                 self._last_status = DIAG_SERVER_ERR
             else:
-                self._last_status = DIAG_CONEXAO_ERR
+                self._last_status = DIAG_INTERNET_ERR
             _LOGGER.error("Erro crítico não tratado no Coordinator: %s", err)
             raise UpdateFailed(f"Erro de comunicação com API: {err}") from err
 

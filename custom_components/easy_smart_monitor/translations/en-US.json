@@ -140,8 +140,8 @@
         "name": "API Connection Status",
         "state": {
           "Conectado": "Connected",
-          "Erro de Rede": "Network Error",
-          "Erro de Servidor": "Server Error",
+          "Falha de Internet": "Internet Failure",
+          "Falha de Servidor": "Server Failure",
           "Timeout/Retry": "Timeout/Retry",
           "Pendente": "Pending"
         }

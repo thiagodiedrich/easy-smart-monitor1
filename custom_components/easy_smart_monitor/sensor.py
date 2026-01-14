@@ -25,7 +25,7 @@ from .const import (
     DEFAULT_INTERVALO_COLETA,
     DEFAULT_EQUIPAMENTO_ATIVO,
     DIAG_CONEXAO_OK,
-    DIAG_CONEXAO_ERR,
+    DIAG_INTERNET_ERR,
     DIAG_SERVER_ERR,
     DIAG_TIMEOUT_RETRY,
     ATTR_LAST_SYNC,
@@ -253,8 +253,8 @@ class EasySmartDiagnosticSensor(CoordinatorEntity, SensorEntity):
     def native_value(self):
         """Lê as propriedades restauradas do coordenador."""
         if self._diag_type == "conexao":
-            # Retorna o status real (Conectado, Erro de Rede, Erro de Servidor ou Timeout/Retry)
-            return self.coordinator.data.get("status_conexao", DIAG_CONEXAO_ERR) if self.coordinator.data else DIAG_CONEXAO_ERR
+            # Retorna o status real (Conectado, Falha de Internet, Falha de Servidor ou Timeout/Retry)
+            return self.coordinator.data.get("status_conexao", DIAG_INTERNET_ERR) if self.coordinator.data else DIAG_INTERNET_ERR
 
         elif self._diag_type == "sincro":
             # Usa a propriedade last_sync_time
