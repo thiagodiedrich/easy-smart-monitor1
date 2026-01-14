@@ -2,6 +2,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const compression = require('compression');
+const zlib = require('zlib');
 
 const app = express();
 const PORT = 3000;
@@ -17,7 +19,56 @@ const VALID_PASS = "123456";
 
 // Middlewares
 app.use(cors());
-app.use(bodyParser.json());
+
+// Compressão GZIP para respostas (automaticamente comprime JSON, HTML, etc)
+// Reduz 70-85% do tamanho de JSON grandes
+app.use(compression({
+    filter: (req, res) => {
+        // Comprime apenas se o cliente aceitar gzip
+        if (req.headers['accept-encoding'] && req.headers['accept-encoding'].includes('gzip')) {
+            return compression.filter(req, res);
+        }
+        return false;
+    },
+    level: 6, // Nível de compressão (1-9, 6 é um bom equilíbrio)
+    threshold: 1024 // Só comprime se o corpo for maior que 1KB
+}));
+
+// BodyParser raw para capturar dados brutos (necessário para descompressão)
+app.use(bodyParser.raw({ type: 'application/json', limit: '50mb' }));
+
+// Middleware para descomprimir requisições que vierem comprimidas
+app.use((req, res, next) => {
+    const contentEncoding = req.headers['content-encoding'];
+    
+    if (contentEncoding === 'gzip' && Buffer.isBuffer(req.body)) {
+        try {
+            // Salva tamanho comprimido antes de descomprimir (para logging)
+            req._compressedSize = req.body.length;
+            // Descomprime os dados
+            const decompressed = zlib.gunzipSync(req.body);
+            // Parse do JSON descomprimido
+            req.body = JSON.parse(decompressed.toString());
+            // Salva tamanho descomprimido
+            req._decompressedSize = decompressed.length;
+            // Remove o header de encoding
+            delete req.headers['content-encoding'];
+        } catch (err) {
+            console.error('Erro ao descomprimir/parsear requisição:', err);
+            return res.status(400).json({ error: 'Dados comprimidos inválidos' });
+        }
+    } else if (Buffer.isBuffer(req.body)) {
+        // Requisição não comprimida, apenas faz parse do JSON
+        try {
+            req.body = JSON.parse(req.body.toString());
+        } catch (err) {
+            console.error('Erro ao parsear JSON:', err);
+            return res.status(400).json({ error: 'JSON inválido' });
+        }
+    }
+    
+    next();
+});
 
 // --- FUNÇÃO DE DATA/HORA (Pt-BR) ---
 const getNow = () => {
@@ -119,7 +170,13 @@ app.post('/api/telemetria/bulk', (req, res) => {
         }
 
         const payload = req.body;
-        console.log(`\n[RECEBIDO] Pacote com ${payload.length} itens:`);
+        
+        console.log(`\n[RECEBIDO] Pacote com ${payload.length} itens`);
+        // Mostra estatísticas de compressão se disponíveis
+        if (req._compressedSize && req._decompressedSize) {
+            const compressionRatio = ((1 - req._compressedSize / req._decompressedSize) * 100).toFixed(1);
+            console.log(`   📦 Compressão GZIP: ${req._compressedSize} bytes → ${req._decompressedSize} bytes (${compressionRatio}% reduzido)`);
+        }
         
         if (Array.isArray(payload)) {
             payload.forEach(item => {
