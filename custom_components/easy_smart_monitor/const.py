@@ -11,7 +11,7 @@ from homeassistant.const import (
 # Identificação da Integração
 DOMAIN = "easy_smart_monitor"
 NAME = "Easy Smart Monitor"
-VERSION = "1.0.14"
+VERSION = "1.0.16"
 MANUFACTURER = "Easy Smart"
 
 # Modo de Operação
@@ -35,7 +35,7 @@ CONF_SENSOR_TYPE = "tipo"
 CONF_HA_ENTITY = "ha_entity_id"
 
 # Configurações de Fila e Rede
-DEFAULT_UPDATE_INTERVAL = 60
+DEFAULT_UPDATE_INTERVAL = 120
 MAX_RETRIES = 5
 RETRY_DELAY = 10
 STORAGE_FILE = "easy_smart_monitor_queue.json"
@@ -55,7 +55,7 @@ CONF_SIRENE_ATIVA = "sirene_ativa"
 CONF_INTERVALO_COLETA = "intervalo_coleta"
 CONF_TEMPO_PORTA = "tempo_porta"
 
-DEFAULT_INTERVALO_COLETA = 120
+DEFAULT_INTERVALO_COLETA = 60
 DEFAULT_TEMPO_PORTA_ABERTA = 120
 DEFAULT_EQUIPAMENTO_ATIVO = True
 DEFAULT_SIRENE_ATIVA = False

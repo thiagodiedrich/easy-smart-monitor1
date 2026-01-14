@@ -1,7 +1,7 @@
-# 🧊 Easy Smart Monitor v1.0.14
+# 🧊 Easy Smart Monitor v1.0.16
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-1.0.14-green.svg)](https://github.com/thiagodiedrich/easy_smart_monitor)
+[![version](https://img.shields.io/badge/version-1.0.16-green.svg)](https://github.com/thiagodiedrich/easy_smart_monitor)
 [![maintainer](https://img.shields.io/badge/maintainer-@thiagodiedrich-blue.svg)](https://github.com/thiagodiedrich)
 
 **Integração profissional para monitoramento industrial de freezers, geladeiras e câmaras frias no Home Assistant.**
@@ -47,7 +47,7 @@ Cada equipamento adicionado ao Easy Smart Monitor gera automaticamente um dispos
 * Acesso à pasta `custom_components`.
 
 ### Passo a Passo
-1.  Baixe o código fonte da versão mais recente (v1.0.14).
+1.  Baixe o código fonte da versão mais recente (v1.0.16).
 2.  Copie a pasta **`easy_smart_monitor`** para dentro do diretório `/config/custom_components/` do seu Home Assistant.
 3.  **Reinicie o Home Assistant**.
 4.  Vá em **Configurações > Dispositivos e Serviços > Adicionar Integração**.
@@ -71,6 +71,11 @@ Para adicionar novos freezers ou remover sensores, clique em **Configurar** no c
 ---
 
 ## 📝 Changelog
+
+### v1.0.16 (Estável)
+* [x] **Gestão de Intervalos:** Separação clara entre Intervalo de Coleta Local e Intervalo de Envio Cloud.
+* [x] **Atualização Dinâmica:** Mudanças no intervalo de coleta agora reiniciam a integração automaticamente.
+* [x] **Correção de Bugs:** Resolvido problema de persistência de configurações de sincronia.
 
 ### v1.0.14 (Estável)
 * [x] **Internacionalização (i18n):** Suporte total a traduções (PT-BR / EN-US).

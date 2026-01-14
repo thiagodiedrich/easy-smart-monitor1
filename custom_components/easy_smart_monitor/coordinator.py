@@ -46,7 +46,13 @@ class EasySmartCoordinator(DataUpdateCoordinator):
 
         # Validação de intervalo mínimo para proteger o sistema (30s)
         # Se update_interval for None ou menor que 30, força o padrão.
-        safe_interval = max(update_interval or DEFAULT_UPDATE_INTERVAL, 30)
+        if update_interval is None:
+            safe_interval = DEFAULT_UPDATE_INTERVAL
+        else:
+            try:
+                safe_interval = max(int(update_interval), 30)
+            except (ValueError, TypeError):
+                safe_interval = DEFAULT_UPDATE_INTERVAL
 
         super().__init__(
             hass,
@@ -55,10 +61,10 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=safe_interval),
         )
 
-        _LOGGER.debug(
-            "Coordinator inicializado. Intervalo de sincronia: %s segundos. Modo Teste: %s",
-            safe_interval,
-            TEST_MODE
+        _LOGGER.info(
+            "Coordinator [%s] inicializado. Intervalo de sincronia (API): %s segundos.",
+            DOMAIN,
+            safe_interval
         )
 
     async def _async_update_data(self) -> Dict[str, Any]:

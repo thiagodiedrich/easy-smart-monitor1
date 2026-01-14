@@ -18,10 +18,12 @@ from .const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_EQUIPMENTS,
+    CONF_UPDATE_INTERVAL,
     DEFAULT_INTERVALO_COLETA,
     DEFAULT_TEMPO_PORTA_ABERTA,
     DEFAULT_EQUIPAMENTO_ATIVO,
     DEFAULT_SIRENE_ATIVA,
+    DEFAULT_UPDATE_INTERVAL,
     TEST_MODE
 )
 from .client import EasySmartClient
@@ -183,11 +185,13 @@ class EasySmartOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current_interval = self.config_entry.options.get("update_interval", 60)
+        current_interval = self.config_entry.options.get(CONF_UPDATE_INTERVAL) or \
+                          self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+                          
         return self.async_show_form(
             step_id="change_interval",
             data_schema=vol.Schema({
-                vol.Optional("update_interval", default=current_interval):
+                vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval):
                     vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
             }),
         )

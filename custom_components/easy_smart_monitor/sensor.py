@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """
-    Configura os sensores de telemetria e diagnóstico v1.0.14.
+    Configura os sensores de telemetria e diagnóstico v1.0.16.
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     equipments = entry.data.get(CONF_EQUIPMENTS, [])

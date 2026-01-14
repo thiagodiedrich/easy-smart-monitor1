@@ -85,9 +85,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # -------------------------------------------------------------------------
     # 4. Inicialização do Coordinator
     # -------------------------------------------------------------------------
-    update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+    # Tenta buscar das opções (menu Ajuste Fino) ou dos dados (migração/setup)
+    update_interval = entry.options.get(CONF_UPDATE_INTERVAL) or entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
 
-    _LOGGER.debug("Inicializando Coordinator com intervalo de %s segundos.", update_interval)
+    _LOGGER.info(
+        "Inicializando Coordinator para %s. Intervalo de Sincronia: %s segundos. Opções: %s", 
+        entry.title, 
+        update_interval,
+        entry.options
+    )
 
     coordinator = EasySmartCoordinator(hass, client, update_interval)
 

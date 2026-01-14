@@ -84,7 +84,7 @@ class EasySmartDoorSensor(BinarySensorEntity):
             identifiers={(DOMAIN, equip["uuid"])},
             name=equip["nome"],
             manufacturer="Easy Smart",
-            model="Monitor Industrial v1.0.14",
+            model="Monitor Industrial v1.0.16",
         )
 
     @property
@@ -301,7 +301,7 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
             identifiers={(DOMAIN, equip["uuid"])},
             name=equip["nome"],
             manufacturer="Easy Smart",
-            model="Monitor Industrial v1.0.14",
+            model="Monitor Industrial v1.0.16",
         )
 
     @property
@@ -392,7 +392,7 @@ class EasySmartButtonSensor(BinarySensorEntity):
             identifiers={(DOMAIN, equip["uuid"])},
             name=equip["nome"],
             manufacturer="Easy Smart",
-            model="Monitor Industrial v1.0.14",
+            model="Monitor Industrial v1.0.16",
         )
 
     async def async_added_to_hass(self) -> None:
