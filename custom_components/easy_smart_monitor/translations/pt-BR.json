@@ -50,7 +50,7 @@
       "init": {
         "title": "Gerenciamento Easy Smart Monitor",
         "menu_options": {
-          "change_interval": "Intervalo de Sincronia (API)",
+          "change_interval": "Intervalo de Envio (API Cloud)",
           "equipments_menu": "Gerenciar Equipamentos",
           "manage_sensors": "Gerenciar Sensores de um Equipamento"
         }
@@ -74,7 +74,7 @@
       "change_interval": {
         "title": "Ajuste Fino",
         "data": {
-          "update_interval": "Intervalo de Sincronia (segundos)"
+          "update_interval": "Intervalo de Envio Cloud (segundos)"
         }
       },
       "manage_sensors": {

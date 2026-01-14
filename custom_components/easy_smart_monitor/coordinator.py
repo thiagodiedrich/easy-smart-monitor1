@@ -45,8 +45,8 @@ class EasySmartCoordinator(DataUpdateCoordinator):
         self._last_sync_time: str = "Aguardando..."
 
         # Validação de intervalo mínimo para proteger o sistema (30s)
-        # Se update_interval for None ou menor que 30, força 30.
-        safe_interval = max(update_interval or 60, 30)
+        # Se update_interval for None ou menor que 30, força o padrão.
+        safe_interval = max(update_interval or DEFAULT_UPDATE_INTERVAL, 30)
 
         super().__init__(
             hass,

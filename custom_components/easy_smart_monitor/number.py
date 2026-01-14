@@ -54,5 +54,8 @@ class EasySmartNumber(NumberEntity):
         for e in new_data["equipments"]:
             if e["uuid"] == self.equip["uuid"]:
                 e[self.key] = int(value)
-        self.hass.config_entries.async_update_entry(self.entry, data=new_data)
+        
+        # Atualiza a entrada e força o reload para que os sensores reiniciem seus timers
+        await self.hass.config_entries.async_edit_entry(self.entry, data=new_data)
+        await self.hass.config_entries.async_reload(self.entry.entry_id)
         self.async_write_ha_state()

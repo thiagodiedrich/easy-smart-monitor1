@@ -50,7 +50,7 @@
       "init": {
         "title": "Easy Smart Monitor Management",
         "menu_options": {
-          "change_interval": "Sync Interval (API)",
+          "change_interval": "API Cloud Sync Interval",
           "equipments_menu": "Manage Equipments",
           "manage_sensors": "Manage Equipment Sensors"
         }
@@ -74,7 +74,7 @@
       "change_interval": {
         "title": "Fine Tuning",
         "data": {
-          "update_interval": "Sync Interval (seconds)"
+          "update_interval": "Cloud Sync Interval (seconds)"
         }
       },
       "manage_sensors": {
