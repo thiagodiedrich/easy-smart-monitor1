@@ -140,7 +140,7 @@
       "botao": { "name": "Reset Button" }
     },
     "number": {
-      "intervalo_coleta": { "name": "Sync Interval" },
+      "intervalo_coleta": { "name": "Collection Interval" },
       "tempo_porta": { "name": "Door Open Time" }
     },
     "switch": {

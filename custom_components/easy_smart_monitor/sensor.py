@@ -137,7 +137,7 @@ class EasySmartTelemetrySensor(SensorEntity):
         return self._equip # Fallback
 
     async def async_added_to_hass(self) -> None:
-        """Registra o listener de mudança de estado e inicializa o valor atual."""
+        """Registra o timer de coleta periódica e inicializa o valor atual."""
         await super().async_added_to_hass()
 
         # 1. Tenta inicializar o estado com o valor atual da entidade fonte
@@ -163,43 +163,28 @@ class EasySmartTelemetrySensor(SensorEntity):
                 )
 
         @callback
-        def _telemetry_listener(event):
-            """Chamado sempre que a entidade original muda no HA."""
-            new_state = event.data.get("new_state")
-
-            # Validação Básica
-            if new_state is None or new_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-                return
-
-            # 1. Verificação de Equipamento Ativo
-            # Obtemos a config atualizada para respeitar o switch IMEDIATAMENTE
+        def _periodic_collection(now=None):
+            """Executa a coleta periódica baseada no intervalo configurado."""
+            # Obtemos a config atualizada para respeitar o switch e o intervalo IMEDIATAMENTE
             current_config = self._get_current_equip_config()
             is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
 
             if not is_active:
-                # Se o switch estiver OFF, ignoramos silenciosamente
                 return
 
-            # 2. Verificação de Intervalo (Debounce)
-            intervalo = current_config.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA)
-            now = time.time()
-
-            if (now - self._last_collection_time) < intervalo:
-                # Ignora atualizações muito rápidas para não floodar a fila
+            source_state = self.hass.states.get(self._ha_source_entity)
+            if source_state is None or source_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                 return
 
-            # 3. Processamento do Valor
             try:
-                raw_value = new_state.state
-                # Tenta converter para float se for numérico
+                raw_value = source_state.state
                 if self._attr_device_class in [SensorDeviceClass.TEMPERATURE, SensorDeviceClass.POWER, SensorDeviceClass.VOLTAGE]:
                     processed_value = float(raw_value)
                 else:
                     processed_value = raw_value
 
                 self._state = processed_value
-                self._last_collection_time = now
-
+                
                 # Monta o payload
                 payload = {
                     "equip_uuid": self._equip["uuid"],
@@ -209,20 +194,37 @@ class EasySmartTelemetrySensor(SensorEntity):
                     "timestamp": datetime.now().isoformat()
                 }
 
-                # 4. Envio para o Coordenador
-                # Usa async_create_task pois estamos dentro de um callback síncrono
+                # Envio para o Coordenador
                 self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
-
-                # Atualiza a interface do sensor
                 self.async_write_ha_state()
 
             except ValueError:
-                _LOGGER.warning("Valor inválido recebido de %s: %s", self._ha_source_entity, raw_value)
+                _LOGGER.warning("Valor inválido em coleta periódica de %s: %s", self._ha_source_entity, raw_value)
 
-        # Monitora a entidade fonte
-        self.async_on_remove(
-            async_track_state_change_event(self.hass, self._ha_source_entity, _telemetry_listener)
+        # Configura o timer periódico
+        from homeassistant.helpers.event import async_track_time_interval
+        from datetime import timedelta
+
+        # Busca o intervalo inicial
+        current_config = self._get_current_equip_config()
+        intervalo = current_config.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA)
+        
+        self._unsub_timer = async_track_time_interval(
+            self.hass, 
+            _periodic_collection, 
+            timedelta(seconds=intervalo)
         )
+        self.async_on_remove(self._unsub_timer)
+
+        # Monitora também mudanças na configuração para atualizar o timer se o intervalo mudar
+        @callback
+        def _config_change_listener(event):
+            # Se a configuração do intervalo mudou, reiniciamos o timer
+            # Nota: No ESM, as mudanças de entry.data não disparam eventos de estado facilmente,
+            # mas o reload da integração após mudar o Number cuidará disso se não implementarmos um listener específico.
+            # Como a integração recarrega ao mudar o Number (via async_update_options em __init__.py),
+            # o timer será recriado com o novo valor automaticamente.
+            pass
 
 
 class EasySmartDiagnosticSensor(CoordinatorEntity, SensorEntity):

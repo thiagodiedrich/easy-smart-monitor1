@@ -140,7 +140,7 @@
       "botao": { "name": "Botão de Reset" }
     },
     "number": {
-      "intervalo_coleta": { "name": "Intervalo de Sincronia" },
+      "intervalo_coleta": { "name": "Intervalo de Coleta" },
       "tempo_porta": { "name": "Tempo Porta Aberta" }
     },
     "switch": {

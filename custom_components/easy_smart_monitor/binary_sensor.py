@@ -121,14 +121,49 @@ class EasySmartDoorSensor(BinarySensorEntity):
             self.hass.bus.async_listen(f"{DOMAIN}_button_pressed", _handle_reset_event)
         )
 
+        @callback
+        def _periodic_collection(now=None):
+            """Executa a coleta periódica baseada no intervalo configurado."""
+            current_config = self._get_current_equip_config()
+            is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
+
+            if not is_active:
+                return
+
+            source_state = self.hass.states.get(self._ha_source_entity)
+            if source_state is None or source_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                return
+
+            is_open = source_state.state == STATE_ON
+            
+            # Monta payload de telemetria
+            payload = {
+                "equip_uuid": self._equip["uuid"],
+                "sensor_uuid": self._config["uuid"],
+                "tipo": "porta",
+                "status": "aberta" if is_open else "fechada",
+                "timestamp": datetime.now().isoformat()
+            }
+
+            self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
+
+        # Configura o timer periódico
+        from homeassistant.helpers.event import async_track_time_interval
+        from datetime import timedelta
+
+        current_config = self._get_current_equip_config()
+        intervalo = current_config.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA)
+        
+        self.async_on_remove(
+            async_track_time_interval(self.hass, _periodic_collection, timedelta(seconds=intervalo))
+        )
+
         # Timer para verificar tempo de porta aberta e disparar sirene
         @callback
         def _check_siren_timer(now):
             if self.is_on:
                 self.hass.async_create_task(self._check_and_trigger_siren())
 
-        from homeassistant.helpers.event import async_track_time_interval
-        from datetime import timedelta
         self.async_on_remove(
             async_track_time_interval(self.hass, _check_siren_timer, timedelta(seconds=5))
         )
@@ -175,16 +210,8 @@ class EasySmartDoorSensor(BinarySensorEntity):
             if not is_open:
                 self.hass.async_create_task(self._check_and_trigger_siren())
 
-            # Monta payload de telemetria
-            payload = {
-                "equip_uuid": self._equip["uuid"],
-                "sensor_uuid": self._config["uuid"],
-                "tipo": "porta",
-                "status": "aberta" if is_open else "fechada",
-                "timestamp": datetime.now().isoformat()
-            }
-
-            self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
+            # Coleta imediata em mudança de estado
+            _periodic_collection()
 
         self.async_on_remove(
             async_track_state_change_event(self.hass, self._ha_source_entity, _door_state_listener)
@@ -286,23 +313,23 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
         return self._equip
 
     async def async_added_to_hass(self) -> None:
+        """Registra o timer de coleta periódica e o listener de eventos."""
         await super().async_added_to_hass()
 
-        initial_state = self.hass.states.get(self._ha_source_entity)
-        if initial_state is not None and initial_state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-            self._state = initial_state.state == STATE_ON
-
         @callback
-        def _state_listener(event):
-            new_state = event.data.get("new_state")
-            if new_state is None or new_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-                return
-
+        def _periodic_collection(now=None):
+            """Executa a coleta periódica baseada no intervalo configurado."""
             current_config = self._get_current_equip_config()
-            if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
+            is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
+
+            if not is_active:
                 return
 
-            is_on = new_state.state == STATE_ON
+            source_state = self.hass.states.get(self._ha_source_entity)
+            if source_state is None or source_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                return
+
+            is_on = source_state.state == STATE_ON
             self._state = is_on
             self.async_write_ha_state()
 
@@ -314,6 +341,30 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
                 "timestamp": datetime.now().isoformat()
             }
             self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
+
+        # Configura o timer periódico
+        from homeassistant.helpers.event import async_track_time_interval
+        from datetime import timedelta
+
+        current_config = self._get_current_equip_config()
+        intervalo = current_config.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA)
+        
+        self.async_on_remove(
+            async_track_time_interval(self.hass, _periodic_collection, timedelta(seconds=intervalo))
+        )
+
+        initial_state = self.hass.states.get(self._ha_source_entity)
+        if initial_state is not None and initial_state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._state = initial_state.state == STATE_ON
+
+        @callback
+        def _state_listener(event):
+            new_state = event.data.get("new_state")
+            if new_state is None or new_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                return
+
+            # Coleta imediata em mudança de estado (opcional, mas bom para responsividade)
+            _periodic_collection()
 
         self.async_on_remove(
             async_track_state_change_event(self.hass, self._ha_source_entity, _state_listener)
