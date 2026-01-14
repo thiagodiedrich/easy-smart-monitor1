@@ -19,6 +19,19 @@ const VALID_PASS = "123456";
 app.use(cors());
 app.use(bodyParser.json());
 
+// --- FUNÇÃO DE DATA/HORA (Pt-BR) ---
+const getNow = () => {
+    // Retorna string formatada: "14/01/2026 15:30:45"
+    return new Date().toLocaleString('pt-BR');
+};
+
+// --- MIDDLEWARE DE LOG GERAL ---
+// Isso aqui vai rodar para QUALQUER requisição que chegar
+app.use((req, res, next) => {
+    console.log(`\n[${getNow()}] 📡 RECEBIDO: ${req.method} ${req.originalUrl}`);
+    next(); // Passa para a próxima rota
+});
+
 // --- FUNÇÕES AUXILIARES ---
 const generateTokens = (username) => {
     // expiresIn no jwt.sign aceita string ('2m')

@@ -205,9 +205,10 @@ class EasySmartTelemetrySensor(SensorEntity):
         from homeassistant.helpers.event import async_track_time_interval
         from datetime import timedelta
 
-        # Busca o intervalo inicial
+        # Busca o intervalo inicial. Se for menor que 30 segundos, assume 30 
+        # para não prejudicar o desempenho do Home Assistant.
         current_config = self._get_current_equip_config()
-        intervalo = current_config.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA)
+        intervalo = max(int(current_config.get(CONF_INTERVALO_COLETA, 30)), 30)
         
         self._unsub_timer = async_track_time_interval(
             self.hass, 

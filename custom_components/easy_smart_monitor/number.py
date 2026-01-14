@@ -16,7 +16,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entities = []
     for equip in equipments:
-        entities.append(EasySmartNumber(coordinator, entry, equip, "intervalo_coleta", "Intervalo de Coleta", 10, 3600, 1, "s", "mdi:timer-cog"))
+        # Trava na UI: Mínimo de 30 segundos para não prejudicar o desempenho do Home Assistant
+        entities.append(EasySmartNumber(coordinator, entry, equip, "intervalo_coleta", "Intervalo de Coleta", 30, 3600, 1, "s", "mdi:timer-cog"))
         
         # Verifica se o equipamento possui sensores do tipo 'porta' e 'sirene'
         sensors = equip.get("sensors", [])
