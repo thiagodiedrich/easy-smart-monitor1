@@ -63,6 +63,7 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=f"{DOMAIN}_coordinator",
             update_interval=timedelta(seconds=safe_interval),
+            request_timeout=300, # Aumentado para 5 minutos para suportar as 5 retentativas da API
         )
 
         # Timer dedicado para garantir o envio para a API mesmo se os sensores 
@@ -126,13 +127,17 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             raise e
         except Exception as err:
             self._last_sync_success = False
-            # Verifica internet em caso de exceção desconhecida
+            # Verifica internet em caso de exceção desconhecida ou Timeout do HA
             if await self.client.check_internet():
                 self._last_status = DIAG_SERVER_ERR
+                _LOGGER.error("Falha de comunicação com o servidor Easy Smart: %s", err)
             else:
                 self._last_status = DIAG_INTERNET_ERR
-            _LOGGER.error("Erro crítico não tratado no Coordinator: %s", err)
-            raise UpdateFailed(f"Erro de comunicação com API: {err}") from err
+                _LOGGER.error("Falha de conexão com a internet detectada: %s", err)
+            
+            # Não levantamos UpdateFailed aqui para permitir que o sensor mostre o estado de erro
+            # em vez de ficar "Indisponível" ou travado no status anterior.
+            return self._get_diagnostics_payload()
 
     def _get_diagnostics_payload(self) -> Dict[str, Any]:
         """Compila os dados de saúde do sistema para os sensores de diagnóstico."""
