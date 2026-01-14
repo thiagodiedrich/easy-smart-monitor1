@@ -152,6 +152,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Recarrega a integração ao mudar opções."""
-    _LOGGER.info("Opções alteradas. Recarregando integração...")
+    """Gerencia atualizações de opções sem necessariamente recarregar tudo."""
+    _LOGGER.debug("Atualização de configurações detectada para %s", entry.title)
+    
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    
+    # 1. Atualiza o intervalo do Coordinator dinamicamente se mudou nas opções
+    new_interval = entry.options.get(CONF_UPDATE_INTERVAL)
+    if new_interval and int(new_interval) != coordinator.update_interval_seconds:
+        coordinator.update_interval_seconds = int(new_interval)
+        _LOGGER.info("Intervalo Cloud (API) atualizado em tempo de execução para %s segundos.", new_interval)
+        # Se foi APENAS o intervalo que mudou, não precisamos de um reload completo
+        # No entanto, o HA recomenda o reload se houver mudanças estruturais.
+    
+    # Se houver mudanças nos equipamentos (que ficam em data), o reload é obrigatório
+    # Para simplificar e garantir que todos os sensores reflitam as mudanças,
+    # mantemos o reload, mas a atualização dinâmica acima já garante o tempo imediato.
     await hass.config_entries.async_reload(entry.entry_id)

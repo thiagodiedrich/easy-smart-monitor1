@@ -154,3 +154,15 @@ class EasySmartCoordinator(DataUpdateCoordinator):
     def queue_size(self) -> int:
         """Retorna o tamanho atual da fila."""
         return len(self.client.queue)
+
+    @property
+    def update_interval_seconds(self) -> float:
+        """Retorna o intervalo atual em segundos."""
+        return self.update_interval.total_seconds() if self.update_interval else 0
+
+    @update_interval_seconds.setter
+    def update_interval_seconds(self, value: int):
+        """Atualiza o intervalo de atualização dinamicamente."""
+        safe_interval = max(int(value), 30)
+        self.update_interval = timedelta(seconds=safe_interval)
+        _LOGGER.info("Intervalo de atualização do Coordinator [%s] ajustado para %s segundos.", self.name, safe_interval)

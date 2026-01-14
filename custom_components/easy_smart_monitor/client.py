@@ -108,7 +108,11 @@ class EasySmartClient:
         Implementa Retry, Renovação de Token automático e tratamento de erros de rede.
         """
         if not self.queue:
-            _LOGGER.debug("Sincronização ignorada: Fila vazia.")
+            # Heartbeat: Se a fila estiver vazia, realizamos uma comunicação mínima
+            # apenas para validar a conexão e atualizar o timestamp de "Última Sincronização".
+            # Isso garante que o usuário veja que o intervalo está sendo respeitado.
+            _LOGGER.debug("Fila vazia. Iniciando heartbeat para manter conexão viva.")
+            await self.authenticate()
             return True
 
         # O Lock garante que se um ciclo de rede demorar, o próximo não atropele o atual
