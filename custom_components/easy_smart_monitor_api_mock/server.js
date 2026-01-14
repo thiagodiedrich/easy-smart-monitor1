@@ -34,39 +34,31 @@ app.use(compression({
     threshold: 1024 // Só comprime se o corpo for maior que 1KB
 }));
 
-// BodyParser raw para capturar dados brutos (necessário para descompressão)
-app.use(bodyParser.raw({ type: 'application/json', limit: '50mb' }));
+// BodyParser raw para capturar dados brutos
+// Deixamos o inflate: true (padrão) para o Node.js lidar com a descompressão.
+app.use(bodyParser.raw({ type: 'application/json', limit: '50mb', inflate: true }));
 
-// Middleware para descomprimir requisições que vierem comprimidas
+// Middleware para extrair estatísticas de compressão e converter buffer para JSON
 app.use((req, res, next) => {
-    const contentEncoding = req.headers['content-encoding'];
-    
-    if (contentEncoding === 'gzip' && Buffer.isBuffer(req.body)) {
-        try {
-            // Salva tamanho comprimido antes de descomprimir (para logging)
-            req._compressedSize = req.body.length;
-            // Descomprime os dados
-            const decompressed = zlib.gunzipSync(req.body);
-            // Parse do JSON descomprimido
-            req.body = JSON.parse(decompressed.toString());
-            // Salva tamanho descomprimido
-            req._decompressedSize = decompressed.length;
-            // Remove o header de encoding
-            delete req.headers['content-encoding'];
-        } catch (err) {
-            console.error('Erro ao descomprimir/parsear requisição:', err);
-            return res.status(400).json({ error: 'Dados comprimidos inválidos' });
+    if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+        // O Content-Length reflete o tamanho que chegou via rede (comprimido)
+        const compressedSize = parseInt(req.headers['content-length'] || '0');
+        const decompressedSize = req.body.length;
+
+        // Se o tamanho da rede for menor que o descompressado, houve compressão
+        if (compressedSize > 0 && compressedSize < decompressedSize) {
+            req._compressedSize = compressedSize;
+            req._decompressedSize = decompressedSize;
         }
-    } else if (Buffer.isBuffer(req.body)) {
-        // Requisição não comprimida, apenas faz parse do JSON
+
         try {
+            // Converte o buffer (que o body-parser já descomprimiu) para JSON
             req.body = JSON.parse(req.body.toString());
         } catch (err) {
-            console.error('Erro ao parsear JSON:', err);
+            console.error('Erro ao parsear JSON:', err.message);
             return res.status(400).json({ error: 'JSON inválido' });
         }
     }
-    
     next();
 });
 
