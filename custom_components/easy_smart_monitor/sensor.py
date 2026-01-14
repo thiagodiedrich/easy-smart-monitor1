@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """
-    Configura os sensores de telemetria e diagnóstico v1.0.18.
+    Configura os sensores de telemetria e diagnóstico v1.1.0.
     """
     coordinator = hass.data[DOMAIN][entry.entry_id]
     equipments = entry.data.get(CONF_EQUIPMENTS, [])
@@ -101,7 +101,7 @@ class EasySmartTelemetrySensor(SensorEntity):
             identifiers={(DOMAIN, equip["uuid"])},
             name=equip["nome"],
             manufacturer="Easy Smart",
-            model="Monitor Industrial v1.0.18",
+            model="Monitor Industrial v1.1.0",
             suggested_area=equip.get("local"),
         )
 

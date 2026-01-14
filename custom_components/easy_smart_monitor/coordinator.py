@@ -8,6 +8,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     DOMAIN,
@@ -61,18 +62,32 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=safe_interval),
         )
 
+        # Timer dedicado para garantir o envio para a API mesmo se os sensores 
+        # de diagnóstico não estiverem sendo visualizados no dashboard.
+        self._unsub_sync_timer = async_track_time_interval(
+            self.hass,
+            self._timer_sync_queue,
+            timedelta(seconds=safe_interval)
+        )
+
         _LOGGER.info(
-            "Coordenador API Cloud [%s] inicializado. Ciclo de envio: %s segundos.",
+            "Coordenador API Cloud [%s] inicializado com timer robusto. Ciclo de envio: %s segundos.",
             DOMAIN,
             safe_interval
         )
+
+    async def _timer_sync_queue(self, now=None):
+        """Dispara o ciclo de sincronização via timer externo."""
+        _LOGGER.debug("Timer robusto disparado: Iniciando sincronização da fila.")
+        await self.async_refresh()
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """
         Método chamado automaticamente pelo HA a cada intervalo de tempo.
         Tenta esvaziar a fila enviando dados para a API.
         """
-        _LOGGER.debug("Iniciando ciclo de sincronização agendado (Fila atual: %s)", len(self.client.queue))
+        _LOGGER.info("Executando ciclo de sincronização agendado (Fila: %s itens, Intervalo: %ss)", 
+                     len(self.client.queue), self.update_interval.total_seconds() if self.update_interval else "N/A")
 
         try:
             # Chama o método de sincronia do cliente (que lida com retries e auth)
@@ -168,4 +183,21 @@ class EasySmartCoordinator(DataUpdateCoordinator):
         # o desempenho do Home Assistant e da API Cloud (Online).
         safe_interval = max(int(value), 60)
         self.update_interval = timedelta(seconds=safe_interval)
+        
+        # Atualiza também o timer robusto
+        if hasattr(self, '_unsub_sync_timer') and self._unsub_sync_timer:
+            self._unsub_sync_timer() # Cancela o anterior
+            
+        self._unsub_sync_timer = async_track_time_interval(
+            self.hass,
+            self._timer_sync_queue,
+            self.update_interval
+        )
+        
         _LOGGER.info("Intervalo de atualização do Coordinator [%s] ajustado para %s segundos.", self.name, safe_interval)
+
+    def shutdown(self):
+        """Limpa recursos ao descarregar."""
+        if hasattr(self, '_unsub_sync_timer') and self._unsub_sync_timer:
+            self._unsub_sync_timer()
+            self._unsub_sync_timer = None

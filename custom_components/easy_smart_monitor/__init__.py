@@ -152,9 +152,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Descarrega a integração."""
     coordinator = hass.data[DOMAIN].get(entry.entry_id)
-    if coordinator and hasattr(coordinator, 'client'):
-        # Garante que qualquer dado na fila seja persistido antes de descarregar
-        coordinator.client._save_queue_to_disk()
+    if coordinator:
+        # Para o timer robusto de sincronização
+        if hasattr(coordinator, 'shutdown'):
+            coordinator.shutdown()
+            
+        if hasattr(coordinator, 'client'):
+            # Garante que qualquer dado na fila seja persistido antes de descarregar
+            coordinator.client._save_queue_to_disk()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
