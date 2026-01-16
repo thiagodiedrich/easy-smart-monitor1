@@ -57,6 +57,7 @@ class EasySmartClient:
             _LOGGER.info("MODO TESTE: Simulando sucesso na autenticação.")
             self.token = "token_teste_v10_estavel"
             self._last_communication_time = datetime.now()
+            self.hass.add_job(self._save_queue_to_disk)
             return True
 
         url = f"{self.host}/auth/login"
@@ -68,11 +69,13 @@ class EasySmartClient:
         _LOGGER.debug("Enviando requisição de login para: %s", url)
         try:
             async with self.session.post(url, json=payload, timeout=15) as response:
-                self._last_communication_time = datetime.now()
                 if response.status == 200:
+                    self._last_communication_time = datetime.now()
                     data = await response.json()
                     self.token = data.get("access_token")
                     _LOGGER.info("Autenticação na API Easy Smart realizada com sucesso.")
+                    # Persiste a metadata de sucesso
+                    self.hass.add_job(self._save_queue_to_disk)
                     return True
 
                 _LOGGER.error(
@@ -181,9 +184,8 @@ class EasySmartClient:
                         headers=compressed_headers,
                         timeout=25
                     ) as response:
-                        self._last_communication_time = datetime.now()
-
                         if response.status in [200, 201]:
+                            self._last_communication_time = datetime.now()
                             _LOGGER.info("Sucesso! %s eventos de telemetria enviados para a API central.", len(self.queue))
                             self.queue.clear()
                             self._save_queue_to_disk()
@@ -215,45 +217,50 @@ class EasySmartClient:
 
     def _save_queue_to_disk(self):
         """
-        Gravação robusta da fila usando helpers oficiais do HA.
-        O arquivo físico NUNCA é removido pelo sistema, apenas seu conteúdo
-        é limpo (definido como vazio) após a confirmação de envio para a API.
+        Gravação robusta da fila e metadata usando helpers oficiais do HA.
         """
         try:
             storage_dir = os.path.dirname(self.storage_path)
             if not os.path.exists(storage_dir):
                 os.makedirs(storage_dir, exist_ok=True)
 
-            # save_json do HA faz a escrita atômica internamente (.tmp -> rename)
-            save_json(self.storage_path, self.queue)
-            _LOGGER.debug("Estado da fila persistido com sucesso no diretório .storage.")
+            # Estrutura de dados persistente
+            data_to_save = {
+                "queue": self.queue,
+                "last_communication": self._last_communication_time.isoformat() if self._last_communication_time else None
+            }
+
+            # save_json do HA faz a escrita atômica internamente
+            save_json(self.storage_path, data_to_save)
+            _LOGGER.debug("Estado da fila e metadata persistidos com sucesso.")
         except Exception as e:
-            _LOGGER.error("Erro crítico ao salvar dados da fila no disco: %s", e)
+            _LOGGER.error("Erro crítico ao salvar dados no disco: %s", e)
 
     async def load_queue_from_disk(self):
-        """Carrega a fila persistida durante o boot da integração."""
+        """Carrega a fila e metadata persistidas durante o boot."""
         if not os.path.exists(self.storage_path):
-            _LOGGER.debug("Arquivo de fila pendente não encontrado. Iniciando nova fila.")
             return
 
         try:
-            # Carrega usando o utilitário nativo do HA em uma thread separada
-            data = await self.hass.async_add_executor_job(
-                load_json, self.storage_path
-            )
+            data = await self.hass.async_add_executor_job(load_json, self.storage_path)
 
-            if isinstance(data, list):
+            if isinstance(data, dict):
+                # Novo formato (v1.3.0+)
+                self.queue = data.get("queue", [])
+                last_comm_str = data.get("last_communication")
+                if last_comm_str:
+                    self._last_communication_time = datetime.fromisoformat(last_comm_str)
+                _LOGGER.info("Persistência carregada: %s eventos e última comunicação restaurada.", len(self.queue))
+            elif isinstance(data, list):
+                # Legado (v1.2.0-)
                 self.queue = data
-                _LOGGER.info("Persistência carregada: %s eventos restaurados para a fila.", len(self.queue))
-            else:
-                _LOGGER.warning("Arquivo de fila encontrado com formato inválido. Iniciando fila limpa.")
+                _LOGGER.info("Persistência legada carregada: %s eventos restaurados.", len(self.queue))
+            
         except Exception as e:
-            _LOGGER.error("Falha ao carregar fila do armazenamento local: %s", e)
-            # Em caso de corrupção física do JSON, gera backup para não travar o sistema
+            _LOGGER.error("Falha ao carregar persistência local: %s", e)
             if os.path.exists(self.storage_path):
                 backup_name = f"{self.storage_path}.corrupt_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 os.rename(self.storage_path, backup_name)
-                _LOGGER.warning("O arquivo corrompido foi movido para: %s", backup_name)
 
     def get_diagnostics(self) -> Dict[str, Any]:
         """Extrai métricas de saúde interna para os sensores de diagnóstico."""
