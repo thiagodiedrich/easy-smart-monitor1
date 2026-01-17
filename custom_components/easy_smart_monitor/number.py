@@ -17,16 +17,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entities = []
     for equip in equipments:
-        # Trava na UI: Permitimos o ajuste, mas validamos no código para garantir o mínimo de 30s
+        # 1. Intervalo de Coleta (Sempre Visível)
         entities.append(EasySmartNumber(coordinator, entry, equip, "intervalo_coleta", "Intervalo de Coleta", 1, 3600, 1, "s", "mdi:timer-cog"))
         
-        # Verifica se o equipamento possui sensores do tipo 'porta' e 'sirene'
-        sensors = equip.get("sensors", [])
-        has_door = any(s.get("tipo") == "porta" for s in sensors)
-        has_siren = any(s.get("tipo") == "sirene" for s in sensors)
-
-        if has_door and has_siren:
-            entities.append(EasySmartNumber(coordinator, entry, equip, "tempo_porta", "Tempo Porta Aberta", 1, 600, 1, "s", "mdi:door-open"))
+        # 2. Tempo Porta Aberta (Sempre Visível, mas bloqueado se não houver sirene física)
+        entities.append(EasySmartNumber(coordinator, entry, equip, "tempo_porta", "Tempo Porta Aberta", 1, 600, 1, "s", "mdi:door-open"))
 
     async_add_entities(entities)
 
@@ -54,6 +49,20 @@ class EasySmartNumber(NumberEntity):
                 default = DEFAULT_TEMPO_PORTA_ABERTA if self.key == "tempo_porta" else DEFAULT_INTERVALO_COLETA
                 return e.get(self.key, default)
         return DEFAULT_INTERVALO_COLETA
+
+    @property
+    def available(self) -> bool:
+        """Retorna se o controle está disponível para uso."""
+        # O intervalo de coleta sempre está disponível
+        if self.key == "intervalo_coleta":
+            return True
+            
+        # O tempo de porta só fica disponível se houver um sensor tipo 'sirene' físico vinculado
+        for e in self.entry.data.get("equipments", []):
+            if e["uuid"] == self.equip["uuid"]:
+                has_physical_siren = any(s.get("tipo") == "sirene" for s in e.get("sensors", []))
+                return has_physical_siren
+        return False
 
     async def async_set_native_value(self, value: float):
         # Validação de segurança para o Intervalo de Coleta

@@ -227,15 +227,16 @@ class EasySmartDoorSensor(BinarySensorEntity):
         if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
             return
 
-        sirene_ativa = current_config.get(CONF_SIRENE_ATIVA, False) # Padrão desativado como pedido
-        tempo_limite = current_config.get(CONF_TEMPO_PORTA, DEFAULT_TEMPO_PORTA_ABERTA)
-        
         # Busca todas as sirenes físicas deste equipamento
         siren_entities = [s["ha_entity_id"] for s in current_config.get(CONF_SENSORS, []) if s.get("tipo") == "sirene"]
         
+        # Se não houver entidades de sirene física, não faz sentido processar alarme
         if not siren_entities:
             return
 
+        sirene_ativa = current_config.get(CONF_SIRENE_ATIVA, False)
+        tempo_limite = current_config.get(CONF_TEMPO_PORTA, DEFAULT_TEMPO_PORTA_ABERTA)
+        
         # Se a opção de sirene ativa estiver desligada, garantimos que as sirenes estejam OFF
         if not sirene_ativa:
             for entity_id in siren_entities:
