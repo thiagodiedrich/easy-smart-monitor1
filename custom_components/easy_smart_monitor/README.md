@@ -1,7 +1,7 @@
-# 🧊 Easy Smart Monitor v1.5.2
+# 🧊 Easy Smart Monitor v1.5.2.1
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/badge/version-1.5.2-green.svg)](https://github.com/thiagodiedrich/easy_smart_monitor)
+[![version](https://img.shields.io/badge/version-1.5.2.1-green.svg)](https://github.com/thiagodiedrich/easy_smart_monitor)
 [![maintainer](https://img.shields.io/badge/maintainer-@thiagodiedrich-blue.svg)](https://github.com/thiagodiedrich)
 
 **Integração profissional para monitoramento industrial de freezers, geladeiras e câmaras frias no Home Assistant.**
@@ -71,6 +71,9 @@ Para adicionar novos freezers ou remover sensores, clique em **Configurar** no c
 ---
 
 ## 📝 Changelog
+
+### v1.5.2.1 (Estável)
+* [x] **Metadados de sensores:** Correção na coleta de `sensor_bateria_pct`, `sensor_sinal_lqi`, `sensor_sinal_rssi`, `sensor_voltagem_bateria`, `sensor_voltagem`, `sensor_corrente` e `sensor_potencia`. Agora são buscados na entidade de origem e nas entidades irmãs do mesmo dispositivo (Zigbee, ZHA, Tuya, Shelly, etc.), evitando valores `null` quando os dados existem em outras entidades.
 
 ### v1.5.2 (Estável)
 * [x] **Correção de Contagem de Fila:** Fila de envio agora conta corretamente por sensores (não por equipamentos). O sensor "Fila de Envio" nas configurações do dispositivo agora exibe o número correto de sensores pendentes.

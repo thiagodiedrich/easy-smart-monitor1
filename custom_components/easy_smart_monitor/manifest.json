@@ -9,6 +9,6 @@
   "issue_tracker": "https://github.com/thiagodiedrich/easy_smart_monitor/issues",
   "requirements": ["aiohttp", "voluptuous"],
   "dependencies": ["http"],
-  "version": "1.5.2",
+  "version": "1.5.2.1",
   "logins": []
 }
