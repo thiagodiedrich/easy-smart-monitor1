@@ -17,14 +17,23 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_sensor_payload(hass: HomeAssistant, equip: dict, sensor_cfg: dict, state_obj: State) -> dict:
-    """Gera o payload detalhado de telemetria seguindo o padrão solicitado."""
-    
-    # 1. Dados do Equipamento
+def get_equipment_header(equip: dict) -> dict:
+    """Gera apenas o cabeçalho do equipamento seguindo o padrão solicitado."""
     is_ativo = equip.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
     equip_status = "ATIVO" if is_ativo else "INATIVO"
     
-    # 2. Dados do Registro de Dispositivos para o Sensor (Entidade Fonte)
+    return {
+        "equip_uuid": equip.get("uuid"),
+        "equip_nome": equip.get("nome"),
+        "equip_local": equip.get("local"),
+        "equip_status": equip_status,
+        "equip_intervalo_coleta": equip.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA),
+        "equip_sirene_ativa": "SIM" if equip.get(CONF_SIRENE_ATIVA, DEFAULT_SIRENE_ATIVA) else "NÃO",
+        "equip_sirete_tempo": equip.get(CONF_TEMPO_PORTA, DEFAULT_TEMPO_PORTA_ABERTA)
+    }
+
+def get_sensor_data(hass: HomeAssistant, sensor_cfg: dict, state_obj: State, is_ativo: bool) -> dict:
+    """Gera apenas os dados técnicos do sensor seguindo o padrão solicitado."""
     sensor_fabricante = "Desconhecido"
     sensor_modelo = "Desconhecido"
     sensor_firmware = "N/A"
@@ -50,14 +59,13 @@ def get_sensor_payload(hass: HomeAssistant, equip: dict, sensor_cfg: dict, state
                     serial = identifier[1]
                     break
 
-    # 3. Atributos da Entidade
+    # Atributos da Entidade
     attrs = state_obj.attributes if state_obj else {}
     
-    # 4. Montagem do Sub-objeto Sensor
-    sensor_data = {
+    return {
         "sensor_uuid": sensor_cfg.get("uuid"),
         "sensor_nome": attrs.get("friendly_name", source_entity_id),
-        "sensor_status": "ATIVO" if is_ativo else "INATIVO", # Segue o status do equipamento
+        "sensor_status": "ATIVO" if is_ativo else "INATIVO",
         "sensor_tipo": attrs.get("device_class", sensor_cfg.get("tipo", "desconhecido")),
         "sensor_unidade": attrs.get("unit_of_measurement", ""),
         "sensor_telemetria": state_obj.state if state_obj else "unknown",
@@ -74,16 +82,4 @@ def get_sensor_payload(hass: HomeAssistant, equip: dict, sensor_cfg: dict, state
         "sensor_firmware": sensor_firmware,
         "sensor_id_hardware": serial,
         "sensor_via_hub": sensor_via_hub
-    }
-
-    # 5. Payload Final
-    return {
-        "equip_uuid": equip.get("uuid"),
-        "equip_nome": equip.get("nome"),
-        "equip_local": equip.get("local"),
-        "equip_status": equip_status,
-        "equip_intervalo_coleta": equip.get(CONF_INTERVALO_COLETA, DEFAULT_INTERVALO_COLETA),
-        "equip_sirene_ativa": "SIM" if equip.get(CONF_SIRENE_ATIVA, DEFAULT_SIRENE_ATIVA) else "NÃO",
-        "equip_sirete_tempo": equip.get(CONF_TEMPO_PORTA, DEFAULT_TEMPO_PORTA_ABERTA),
-        "sensor": sensor_data
     }

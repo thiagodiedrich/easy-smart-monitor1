@@ -106,18 +106,29 @@ class EasySmartClient:
         except Exception:
             return False
 
-    def add_to_queue(self, data: Dict[str, Any]):
-        """Adiciona dados à fila de telemetria e garante a persistência física imediata."""
-        if not isinstance(data, dict):
-            _LOGGER.error("Erro de formato: Tentativa de enfileirar dado que não é um dicionário: %s", data)
-            return
+    def add_to_queue(self, equip_uuid: str, header: dict, sensor: dict):
+        """Adiciona dados à fila agrupando por equipamento para evitar duplicidade de cabeçalho."""
+        # Procura se já existe uma entrada para este equipamento na fila atual
+        for item in self.queue:
+            if item.get("equip_uuid") == equip_uuid:
+                # Se encontrou, adiciona o sensor à lista existente
+                if "sensor" not in item:
+                    item["sensor"] = []
+                elif not isinstance(item["sensor"], list):
+                    # Caso de migração de formato antigo
+                    item["sensor"] = [item["sensor"]]
+                
+                item["sensor"].append(sensor)
+                # Atualiza o cabeçalho com os dados mais recentes (caso status tenha mudado)
+                item.update(header)
+                self.hass.add_job(self._save_queue_to_disk)
+                return
 
-        # Garante a integridade do timestamp para o histórico da API
-        if "timestamp" not in data:
-            data["timestamp"] = datetime.now().isoformat()
-
-        self.queue.append(data)
-        _LOGGER.debug("Evento de telemetria enfileirado localmente. Itens na fila: %s", len(self.queue))
+        # Se não encontrou, cria um novo item na fila
+        new_item = header.copy()
+        new_item["sensor"] = [sensor]
+        self.queue.append(new_item)
+        _LOGGER.debug("Novo equipamento adicionado à fila. Itens: %s", len(self.queue))
 
         # Agenda a gravação para o disco de forma assíncrona (Thread-safe)
         self.hass.add_job(self._save_queue_to_disk)

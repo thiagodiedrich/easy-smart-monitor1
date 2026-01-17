@@ -151,25 +151,22 @@ class EasySmartCoordinator(DataUpdateCoordinator):
             "storage_path": client_stats.get("storage_location", "")
         }
 
-    async def async_add_telemetry(self, data: Dict[str, Any]):
+    async def async_add_telemetry(self, equip_uuid: str, header: dict, sensor: dict):
         """
-        Recebe dados dos sensores (temperatura, porta, etc) e enfileira.
-        IMPORTANTE: Força uma atualização parcial da interface para mostrar
-        o aumento da fila instantaneamente, sem esperar o intervalo de poll.
+        Recebe dados agrupados e enfileira.
         """
-        if not data:
+        if not equip_uuid or not header or not sensor:
             return
 
         # 1. Adiciona à fila e persiste no disco (via Client)
-        self.client.add_to_queue(data)
+        self.client.add_to_queue(equip_uuid, header, sensor)
 
         # 2. Notifica o HA que o tamanho da fila mudou (Update Push)
-        # Isso faz o sensor de "Tamanho da Fila" atualizar na hora no Dashboard
         self.async_set_updated_data(self._get_diagnostics_payload())
 
         _LOGGER.debug(
-            "Telemetria adicionada: %s. Novo tamanho da fila: %s",
-            data.get('tipo'),
+            "Telemetria adicionada para equip %s. Sensores na fila: %s",
+            equip_uuid,
             len(self.client.queue)
         )
 

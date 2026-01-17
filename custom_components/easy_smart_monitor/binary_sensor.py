@@ -30,7 +30,7 @@ from .const import (
     NAME,
     VERSION
 )
-from .utils import get_sensor_payload
+from .utils import get_equipment_header, get_sensor_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,15 +142,18 @@ class EasySmartDoorSensor(BinarySensorEntity):
 
             is_open = source_state.state == STATE_ON
             
-            # Monta payload de telemetria usando a função utilitária unificada
-            payload = get_sensor_payload(
-                self.hass,
-                current_config,
-                self._config,
-                source_state
-            )
+            # Monta payload de telemetria usando as novas funções agrupadas
+            is_ativo = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
+            header = get_equipment_header(current_config)
+            sensor_data = get_sensor_data(self.hass, self._config, source_state, is_ativo)
 
-            self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
+            self.hass.async_create_task(
+                self.coordinator.async_add_telemetry(
+                    self._equip["uuid"], 
+                    header, 
+                    sensor_data
+                )
+            )
 
         # Configura o timer periódico
         from homeassistant.helpers.event import async_track_time_interval
@@ -342,14 +345,18 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
             self._state = is_on
             self.async_write_ha_state()
 
-            # Monta payload de telemetria usando a função utilitária unificada
-            payload = get_sensor_payload(
-                self.hass,
-                current_config,
-                self._config,
-                source_state
+            # Monta payload de telemetria usando as novas funções agrupadas
+            is_ativo = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
+            header = get_equipment_header(current_config)
+            sensor_data = get_sensor_data(self.hass, self._config, source_state, is_ativo)
+
+            self.hass.async_create_task(
+                self.coordinator.async_add_telemetry(
+                    self._equip["uuid"], 
+                    header, 
+                    sensor_data
+                )
             )
-            self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
 
         # Configura o timer periódico
         from homeassistant.helpers.event import async_track_time_interval

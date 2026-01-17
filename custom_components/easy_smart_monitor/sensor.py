@@ -33,7 +33,7 @@ from .const import (
     NAME,
     VERSION
 )
-from .utils import get_sensor_payload
+from .utils import get_equipment_header, get_sensor_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -190,16 +190,19 @@ class EasySmartTelemetrySensor(SensorEntity):
 
                 self._state = processed_value
                 
-                # Monta o payload usando a função utilitária unificada
-                payload = get_sensor_payload(
-                    self.hass, 
-                    current_config, 
-                    self._config, 
-                    source_state
-                )
+                # Monta o payload usando as novas funções agrupadas
+                is_ativo = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
+                header = get_equipment_header(current_config)
+                sensor_data = get_sensor_data(self.hass, self._config, source_state, is_ativo)
 
                 # Envio para o Coordenador
-                self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
+                self.hass.async_create_task(
+                    self.coordinator.async_add_telemetry(
+                        self._equip["uuid"], 
+                        header, 
+                        sensor_data
+                    )
+                )
                 self.async_write_ha_state()
 
             except ValueError:
