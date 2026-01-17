@@ -12,7 +12,7 @@
     },
     "step": {
       "user": {
-        "title": "Connect to Easy Smart Server",
+        "title": "Connect to Easy Smart Monitor Server",
         "description": "Enter API credentials to start.",
         "data": {
           "api_host": "API Host (URL)",

@@ -7,7 +7,9 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     DOMAIN,
     DEFAULT_EQUIPAMENTO_ATIVO,
-    DEFAULT_SIRENE_ATIVA
+    DEFAULT_SIRENE_ATIVA,
+    NAME,
+    VERSION
 )
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -38,8 +40,8 @@ class EasySmartSwitch(SwitchEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 

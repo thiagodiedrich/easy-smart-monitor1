@@ -20,7 +20,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL,
     PLATFORMS,
     TEST_MODE,
-    MANUFACTURER,
+    NAME,
     VERSION
 )
 from .client import EasySmartClient
@@ -95,7 +95,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     update_interval = max(int(raw_interval), 60)
 
     _LOGGER.info(
-        "Iniciando Easy Smart Monitor [%s]. Intervalo de Envio Cloud: %s segundos.", 
+        "Iniciando %s [%s]. Intervalo de Envio Cloud: %s segundos.", 
+        NAME,
         entry.title, 
         update_interval
     )
@@ -129,7 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     config_entry_id=entry.entry_id,
                     identifiers={(DOMAIN, str(equip["uuid"]))},
                     name=device_name,
-                    manufacturer=MANUFACTURER,
+                    manufacturer=NAME,
                     model=f"Monitor Industrial v{VERSION}",
                     suggested_area=equip.get("local"),
                     configuration_url=api_host
@@ -149,7 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # -------------------------------------------------------------------------
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    _LOGGER.info("Easy Smart Monitor iniciado com sucesso.")
+    _LOGGER.info("%s iniciado com sucesso.", NAME)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

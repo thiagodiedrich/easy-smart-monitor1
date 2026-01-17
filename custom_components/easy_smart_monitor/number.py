@@ -8,7 +8,9 @@ from homeassistant.exceptions import ServiceValidationError
 from .const import (
     DOMAIN,
     DEFAULT_INTERVALO_COLETA,
-    DEFAULT_TEMPO_PORTA_ABERTA
+    DEFAULT_TEMPO_PORTA_ABERTA,
+    NAME,
+    VERSION
 )
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -42,8 +44,8 @@ class EasySmartNumber(NumberEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 

@@ -26,8 +26,11 @@ from .const import (
     DEFAULT_EQUIPAMENTO_ATIVO,
     DEFAULT_SIRENE_ATIVA,
     DEFAULT_INTERVALO_COLETA,
-    DEFAULT_TEMPO_PORTA_ABERTA
+    DEFAULT_TEMPO_PORTA_ABERTA,
+    NAME,
+    VERSION
 )
+from .utils import get_sensor_payload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,8 +86,8 @@ class EasySmartDoorSensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 
@@ -139,14 +142,13 @@ class EasySmartDoorSensor(BinarySensorEntity):
 
             is_open = source_state.state == STATE_ON
             
-            # Monta payload de telemetria
-            payload = {
-                "equip_uuid": self._equip["uuid"],
-                "sensor_uuid": self._config["uuid"],
-                "tipo": "porta",
-                "status": "aberta" if is_open else "fechada",
-                "timestamp": datetime.now().isoformat()
-            }
+            # Monta payload de telemetria usando a função utilitária unificada
+            payload = get_sensor_payload(
+                self.hass,
+                current_config,
+                self._config,
+                source_state
+            )
 
             self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
 
@@ -304,8 +306,8 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 
@@ -340,13 +342,13 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
             self._state = is_on
             self.async_write_ha_state()
 
-            payload = {
-                "equip_uuid": self._equip["uuid"],
-                "sensor_uuid": self._config["uuid"],
-                "tipo": self._tipo,
-                "status": "ligado" if is_on else "desligado",
-                "timestamp": datetime.now().isoformat()
-            }
+            # Monta payload de telemetria usando a função utilitária unificada
+            payload = get_sensor_payload(
+                self.hass,
+                current_config,
+                self._config,
+                source_state
+            )
             self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
 
         # Configura o timer periódico
@@ -398,8 +400,8 @@ class EasySmartButtonSensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 

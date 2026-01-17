@@ -24,7 +24,8 @@ from .const import (
     DEFAULT_EQUIPAMENTO_ATIVO,
     DEFAULT_SIRENE_ATIVA,
     DEFAULT_UPDATE_INTERVAL,
-    TEST_MODE
+    TEST_MODE,
+    NAME
 )
 from .client import EasySmartClient
 
@@ -149,7 +150,7 @@ class EasySmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.data[CONF_EQUIPMENTS] = self.equipments
         # Define o intervalo padrão na criação para ser salvo no Home Assistant
         self.data[CONF_UPDATE_INTERVAL] = DEFAULT_UPDATE_INTERVAL
-        title = f"Easy Smart ({self.data.get(CONF_API_HOST, 'Local')})"
+        title = f"{NAME} ({self.data.get(CONF_API_HOST, 'Local')})"
         return self.async_create_entry(title=title, data=self.data)
 
     @staticmethod

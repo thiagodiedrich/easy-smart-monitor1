@@ -91,7 +91,7 @@ const generateTokens = (username) => {
 
 // 1. Rota de Saúde
 app.get('/', (req, res) => {
-    res.json({ status: "online", msg: "Easy Smart Mock (Node.js) está rodando!" });
+    res.json({ status: "online", msg: "Easy Smart Monitor Mock (Node.js) está rodando!" });
     console.log(`Servidor Mock rodando online, acessou /`);
 });
 

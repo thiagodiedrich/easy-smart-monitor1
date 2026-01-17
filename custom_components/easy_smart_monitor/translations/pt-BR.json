@@ -12,7 +12,7 @@
     },
     "step": {
       "user": {
-        "title": "Conectar ao Easy Smart Server",
+        "title": "Conectar ao Easy Smart Monitor Server",
         "description": "Insira as credenciais da API para iniciar a integração.",
         "data": {
           "api_host": "Host da API (URL)",

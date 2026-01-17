@@ -19,7 +19,8 @@ from .const import (
     MAX_RETRIES,
     RETRY_DELAY,
     HEADERS,
-    DEFAULT_PING_HOST
+    DEFAULT_PING_HOST,
+    NAME
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class EasySmartClient:
         # Registro de última comunicação
         self._last_communication_time: Optional[datetime] = None
 
-        _LOGGER.debug("Cliente Easy Smart inicializado. Caminho de armazenamento: %s", self.storage_path)
+        _LOGGER.debug("Cliente %s inicializado. Caminho de armazenamento: %s", NAME, self.storage_path)
 
     async def authenticate(self) -> bool:
         """Realiza a autenticação e obtém o Bearer Token para as requisições."""
@@ -73,7 +74,7 @@ class EasySmartClient:
                     self._last_communication_time = datetime.now()
                     data = await response.json()
                     self.token = data.get("access_token")
-                    _LOGGER.info("Autenticação na API Easy Smart realizada com sucesso.")
+                    _LOGGER.info("Autenticação na API %s realizada com sucesso.", NAME)
                     # Persiste a metadata de sucesso
                     self.hass.add_job(self._save_queue_to_disk)
                     return True
@@ -227,7 +228,7 @@ class EasySmartClient:
             # Estrutura de dados persistente
             data_to_save = {
                 "queue": self.queue,
-                "last_communication": self._last_communication_time.isoformat() if self._last_communication_time else None
+                "api_ultima_comunicacao": self._last_communication_time.isoformat() if self._last_communication_time else None
             }
 
             # save_json do HA faz a escrita atômica internamente
@@ -247,7 +248,7 @@ class EasySmartClient:
             if isinstance(data, dict):
                 # Novo formato (v1.3.0+)
                 self.queue = data.get("queue", [])
-                last_comm_str = data.get("last_communication")
+                last_comm_str = data.get("api_ultima_comunicacao") or data.get("last_communication")
                 if last_comm_str:
                     self._last_communication_time = datetime.fromisoformat(last_comm_str)
                 _LOGGER.info("Persistência carregada: %s eventos e última comunicação restaurada.", len(self.queue))

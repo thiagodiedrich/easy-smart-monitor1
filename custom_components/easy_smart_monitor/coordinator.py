@@ -20,14 +20,15 @@ from .const import (
     DIAG_SERVER_ERR,
     DIAG_TIMEOUT_RETRY,
     DIAG_PENDENTE,
-    TEST_MODE
+    TEST_MODE,
+    NAME
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 class EasySmartCoordinator(DataUpdateCoordinator):
     """
-    Coordenador principal da integração Easy Smart Monitor.
+    Coordenador principal da integração {NAME}.
     Gerencia a sincronização de dados entre a fila local (Client) e o Home Assistant,
     além de fornecer o estado de saúde para os sensores de diagnóstico.
     """

@@ -29,8 +29,11 @@ from .const import (
     DIAG_SERVER_ERR,
     DIAG_TIMEOUT_RETRY,
     ATTR_LAST_SYNC,
-    ATTR_QUEUE_SIZE
+    ATTR_QUEUE_SIZE,
+    NAME,
+    VERSION
 )
+from .utils import get_sensor_payload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,8 +105,8 @@ class EasySmartTelemetrySensor(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 
@@ -187,14 +190,13 @@ class EasySmartTelemetrySensor(SensorEntity):
 
                 self._state = processed_value
                 
-                # Monta o payload
-                payload = {
-                    "equip_uuid": self._equip["uuid"],
-                    "sensor_uuid": self._config["uuid"],
-                    "tipo": self._tipo,
-                    "status": str(processed_value),
-                    "timestamp": datetime.now().isoformat()
-                }
+                # Monta o payload usando a função utilitária unificada
+                payload = get_sensor_payload(
+                    self.hass, 
+                    current_config, 
+                    self._config, 
+                    source_state
+                )
 
                 # Envio para o Coordenador
                 self.hass.async_create_task(self.coordinator.async_add_telemetry(payload))
@@ -250,8 +252,8 @@ class EasySmartDiagnosticSensor(CoordinatorEntity, SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
             name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
-            manufacturer="Easy Smart",
-            model="Monitor Industrial v1.3.0",
+            manufacturer=NAME,
+            model=f"Monitor Industrial v{VERSION}",
             suggested_area=equip.get("local"),
         )
 

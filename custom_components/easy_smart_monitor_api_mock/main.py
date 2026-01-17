@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 
-app = FastAPI(title="Easy Smart Mock Server")
+app = FastAPI(title="Easy Smart Monitor Mock Server")
 
 # --- CONFIGURAÇÕES ---
 SECRET_KEY = "segredo_super_secreto_do_mock"
@@ -49,7 +49,7 @@ def verify_token(token: str):
 
 @app.get("/")
 def home():
-    return {"status": "online", "msg": "Easy Smart Mock API está rodando!"}
+    return {"status": "online", "msg": "Easy Smart Monitor Mock API está rodando!"}
 
 @app.post("/auth/login")
 def login(data: LoginRequest):

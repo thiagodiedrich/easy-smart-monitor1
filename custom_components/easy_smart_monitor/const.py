@@ -11,8 +11,7 @@ from homeassistant.const import (
 # Identificação da Integração
 DOMAIN = "easy_smart_monitor"
 NAME = "Easy Smart Monitor"
-VERSION = "1.3.0"
-MANUFACTURER = "Easy Smart"
+VERSION = "1.4.0"
 
 # Modo de Operação
 # Se True: Habilita preenchimento automático e pula validação de rede no config_flow
