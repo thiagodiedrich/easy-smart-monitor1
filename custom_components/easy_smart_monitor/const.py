@@ -51,6 +51,7 @@ PLATFORMS: list[Platform] = [
 
 # Definições de Hardware e Lógica Industrial (v1.0.11)
 CONF_ATIVO = "ativo"
+CONF_SENSOR_ATIVO = "ativo" # Chave para o switch individual do sensor
 CONF_SIRENE_ATIVA = "sirene_ativa"
 CONF_INTERVALO_COLETA = "intervalo_coleta"
 CONF_TEMPO_PORTA = "tempo_porta"
