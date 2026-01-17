@@ -26,8 +26,7 @@ from .const import (
     DEFAULT_EQUIPAMENTO_ATIVO,
     DEFAULT_SIRENE_ATIVA,
     DEFAULT_INTERVALO_COLETA,
-    DEFAULT_TEMPO_PORTA_ABERTA,
-    CONF_SENSOR_ATIVO
+    DEFAULT_TEMPO_PORTA_ABERTA
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,14 +106,6 @@ class EasySmartDoorSensor(BinarySensorEntity):
                 return e
         return self._equip
 
-    def _get_current_sensor_config(self) -> Dict[str, Any]:
-        """Busca configuração atualizada do sensor."""
-        equip_cfg = self._get_current_equip_config()
-        for s in equip_cfg.get(CONF_SENSORS, []):
-            if s["uuid"] == self._config["uuid"]:
-                return s
-        return self._config
-
     async def async_added_to_hass(self) -> None:
         """Registra listener para mudança de estado da porta física e inicializa estado."""
         await super().async_added_to_hass()
@@ -135,14 +126,10 @@ class EasySmartDoorSensor(BinarySensorEntity):
         @callback
         def _periodic_collection(now=None):
             """Executa a coleta periódica baseada no intervalo configurado."""
-            # 1. Equipamento Ativo?
             current_config = self._get_current_equip_config()
-            if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
-                return
+            is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
 
-            # 2. Sensor Ativo?
-            sensor_cfg = self._get_current_sensor_config()
-            if not sensor_cfg.get(CONF_SENSOR_ATIVO, True):
+            if not is_active:
                 return
 
             source_state = self.hass.states.get(self._ha_source_entity)
@@ -206,14 +193,9 @@ class EasySmartDoorSensor(BinarySensorEntity):
             if new_state is None or new_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                 return
 
-            # 1. Equipamento Ativo?
+            # Verifica se o equipamento está ativo
             current_config = self._get_current_equip_config()
             if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
-                return
-
-            # 2. Sensor Ativo?
-            sensor_cfg = self._get_current_sensor_config()
-            if not sensor_cfg.get(CONF_SENSOR_ATIVO, True):
                 return
 
             # Lógica de Estado
@@ -341,14 +323,10 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
         @callback
         def _periodic_collection(now=None):
             """Executa a coleta periódica baseada no intervalo configurado."""
-            # 1. Equipamento Ativo?
             current_config = self._get_current_equip_config()
-            if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
-                return
+            is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
 
-            # 2. Sensor Ativo?
-            sensor_cfg = self._get_current_sensor_config()
-            if not sensor_cfg.get(CONF_SENSOR_ATIVO, True):
+            if not is_active:
                 return
 
             source_state = self.hass.states.get(self._ha_source_entity)
@@ -389,16 +367,6 @@ class EasySmartGenericBinarySensor(BinarySensorEntity):
         def _state_listener(event):
             new_state = event.data.get("new_state")
             if new_state is None or new_state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-                return
-
-            # 1. Equipamento Ativo?
-            current_config = self._get_current_equip_config()
-            if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
-                return
-
-            # 2. Sensor Ativo?
-            sensor_cfg = self._get_current_sensor_config()
-            if not sensor_cfg.get(CONF_SENSOR_ATIVO, True):
                 return
 
             # Coleta imediata em mudança de estado (opcional, mas bom para responsividade)

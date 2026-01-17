@@ -160,8 +160,7 @@
     },
     "switch": {
       "ativo": { "name": "Equipamento Ativo" },
-      "sirene_ativa": { "name": "Sirene Ativa" },
-      "sensor_monitor": { "name": "Monitorar {sensor_name}" }
+      "sirene_ativa": { "name": "Sirene Ativa" }
     }
   },
   "exceptions": {

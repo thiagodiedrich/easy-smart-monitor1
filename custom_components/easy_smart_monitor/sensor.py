@@ -24,7 +24,6 @@ from .const import (
     CONF_INTERVALO_COLETA,
     DEFAULT_INTERVALO_COLETA,
     DEFAULT_EQUIPAMENTO_ATIVO,
-    CONF_SENSOR_ATIVO,
     DIAG_CONEXAO_OK,
     DIAG_INTERNET_ERR,
     DIAG_SERVER_ERR,
@@ -139,14 +138,6 @@ class EasySmartTelemetrySensor(SensorEntity):
                 return e
         return self._equip # Fallback
 
-    def _get_current_sensor_config(self) -> Dict[str, Any]:
-        """Busca a configuração atual deste sensor específico."""
-        equip_cfg = self._get_current_equip_config()
-        for s in equip_cfg.get(CONF_SENSORS, []):
-            if s["uuid"] == self._config["uuid"]:
-                return s
-        return self._config
-
     async def async_added_to_hass(self) -> None:
         """Registra o timer de coleta periódica e inicializa o valor atual."""
         await super().async_added_to_hass()
@@ -176,14 +167,11 @@ class EasySmartTelemetrySensor(SensorEntity):
         @callback
         def _periodic_collection(now=None):
             """Executa a coleta periódica baseada no intervalo configurado."""
-            # 1. Verifica se o Equipamento está ativo
+            # Obtemos a config atualizada para respeitar o switch e o intervalo IMEDIATAMENTE
             current_config = self._get_current_equip_config()
-            if not current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO):
-                return
+            is_active = current_config.get(CONF_ATIVO, DEFAULT_EQUIPAMENTO_ATIVO)
 
-            # 2. Verifica se este Sensor específico está ativo
-            sensor_config = self._get_current_sensor_config()
-            if not sensor_config.get(CONF_SENSOR_ATIVO, True):
+            if not is_active:
                 return
 
             source_state = self.hass.states.get(self._ha_source_entity)
