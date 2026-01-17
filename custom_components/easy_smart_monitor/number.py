@@ -39,7 +39,13 @@ class EasySmartNumber(NumberEntity):
         self._attr_native_unit_of_measurement = unit
         self._attr_icon = icon
         self._attr_unique_id = f"esm_num_{key}_{equip['uuid']}"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, equip["uuid"])})
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, equip["uuid"])},
+            name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
+            manufacturer="Easy Smart",
+            model="Monitor Industrial v1.3.0",
+            suggested_area=equip.get("local"),
+        )
 
     @property
     def native_value(self) -> float:

@@ -35,7 +35,13 @@ class EasySmartSwitch(SwitchEntity):
         self._attr_has_entity_name = True
         self._attr_icon = icon
         self._attr_unique_id = f"esm_sw_{key}_{equip['uuid']}"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, equip["uuid"])})
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, equip["uuid"])},
+            name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
+            manufacturer="Easy Smart",
+            model="Monitor Industrial v1.3.0",
+            suggested_area=equip.get("local"),
+        )
 
     @property
     def is_on(self) -> bool:

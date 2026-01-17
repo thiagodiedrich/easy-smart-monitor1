@@ -122,10 +122,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("Processando %s equipamentos para registro.", len(equipments))
         for equip in equipments:
             try:
+                # Nome formatado como Nome (Local)
+                device_name = f"{equip['nome']} ({equip.get('local', 'Sem Local')})"
+                
                 dev_registry.async_get_or_create(
                     config_entry_id=entry.entry_id,
                     identifiers={(DOMAIN, str(equip["uuid"]))},
-                    name=equip["nome"],
+                    name=device_name,
                     manufacturer=MANUFACTURER,
                     model=f"Monitor Industrial v{VERSION}",
                     suggested_area=equip.get("local"),

@@ -101,7 +101,7 @@ class EasySmartTelemetrySensor(SensorEntity):
         # Device Info (Agrupamento)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, equip["uuid"])},
-            name=equip["nome"],
+            name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
             manufacturer="Easy Smart",
             model="Monitor Industrial v1.3.0",
             suggested_area=equip.get("local"),
@@ -247,7 +247,13 @@ class EasySmartDiagnosticSensor(CoordinatorEntity, SensorEntity):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_has_entity_name = True
 
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, equip["uuid"])})
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, equip["uuid"])},
+            name=f"{equip['nome']} ({equip.get('local', 'Sem Local')})",
+            manufacturer="Easy Smart",
+            model="Monitor Industrial v1.3.0",
+            suggested_area=equip.get("local"),
+        )
 
     @property
     def native_value(self):
