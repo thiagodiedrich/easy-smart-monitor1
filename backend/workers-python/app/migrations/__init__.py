@@ -9,4 +9,5 @@ Ordem de execução:
 5. 005_user_security_fields - Campos de segurança do usuário (UserType, UserStatus, etc.)
 6. 006_tenant_organization_workspace - Tabelas SaaS base (tenants, organizations, workspaces)
 7. 007_tenant_id_users_equipments - tenant_id em users e equipments (Fase 1)
+8. 008_org_workspace_in_equipments - organization_id e workspace_id em equipments (Fase 2)
 """

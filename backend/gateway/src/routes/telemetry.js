@@ -103,6 +103,8 @@ export const telemetryRoutes = async (fastify) => {
     const userId = request.user.sub; // Do JWT
     const requestId = request.id;
     const tenantId = request.user.tenant_id || request.tenantContext?.tenantId;
+    const organizationId = request.user.organization_id || request.tenantContext?.organizationId;
+    const workspaceId = request.user.workspace_id || request.tenantContext?.workspaceId;
     
     // Validação básica
     if (!Array.isArray(data) || data.length === 0) {
@@ -139,6 +141,8 @@ export const telemetryRoutes = async (fastify) => {
         userId,
         username: request.user.sub,
         tenantId,
+        organizationId,
+        workspaceId,
         requestId,
         itemsCount: data.length,
       });
@@ -148,6 +152,8 @@ export const telemetryRoutes = async (fastify) => {
         userId,
         username: request.user.sub,
         tenantId,
+        organizationId,
+        workspaceId,
         requestId,
         itemsCount: data.length,
         timestamp: new Date().toISOString(),

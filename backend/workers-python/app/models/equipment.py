@@ -28,6 +28,8 @@ class Equipment(Base):
     siren_time = Column(Integer, default=120, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

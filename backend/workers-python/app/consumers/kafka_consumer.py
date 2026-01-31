@@ -129,6 +129,8 @@ class TelemetryKafkaConsumer:
                         storage_type = message_data.get('storage_type', 'minio')
                         metadata = message_data.get('metadata') or {}
                         tenant_id = metadata.get('tenantId') or message_data.get('tenant_id')
+                        organization_id = metadata.get('organizationId') or message_data.get('organization_id')
+                        workspace_id = metadata.get('workspaceId') or message_data.get('workspace_id')
                         
                         logger.info(
                             "Processando Claim Check",
@@ -158,6 +160,8 @@ class TelemetryKafkaConsumer:
                         result = await self.processor.process_bulk(
                             int(user_id) if user_id.isdigit() else 1,
                             int(tenant_id) if tenant_id and str(tenant_id).isdigit() else None,
+                            int(organization_id) if organization_id and str(organization_id).isdigit() else None,
+                            int(workspace_id) if workspace_id and str(workspace_id).isdigit() else None,
                             telemetry_data,
                             db,
                         )

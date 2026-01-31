@@ -23,6 +23,8 @@ class TelemetryProcessor:
         self,
         user_id: int,
         tenant_id: Optional[int],
+        organization_id: Optional[int],
+        workspace_id: Optional[int],
         telemetry_data: List[Dict[str, Any]],
         db: AsyncSession,
     ) -> Dict[str, Any]:
@@ -65,6 +67,8 @@ class TelemetryProcessor:
                     equipment = await self._get_or_create_equipment(
                         user_id,
                         tenant_id,
+                        organization_id,
+                        workspace_id,
                         item,
                         db,
                     )
@@ -135,6 +139,8 @@ class TelemetryProcessor:
         self,
         user_id: int,
         tenant_id: Optional[int],
+        organization_id: Optional[int],
+        workspace_id: Optional[int],
         item: Dict[str, Any],
         db: AsyncSession,
     ) -> Equipment:
@@ -151,6 +157,11 @@ class TelemetryProcessor:
                 raise ValueError(f"Equipamento {equip_uuid} não pertence ao tenant")
             if tenant_id and equipment.tenant_id is None:
                 equipment.tenant_id = tenant_id
+            if organization_id and equipment.organization_id is None:
+                equipment.organization_id = organization_id
+            if workspace_id and equipment.workspace_id is None:
+                equipment.workspace_id = workspace_id
+            if tenant_id or organization_id or workspace_id:
                 db.add(equipment)
                 await db.flush()
             return equipment
@@ -166,6 +177,8 @@ class TelemetryProcessor:
             siren_time=item.get("equip_sirete_tempo", 120),
             user_id=user_id,
             tenant_id=tenant_id,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
         )
         
         db.add(equipment)
