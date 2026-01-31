@@ -38,6 +38,7 @@ async def run_migrations(command):
         "017_equipments_sensors_telemetry_refactor",
         "018_plans_limits_refactor",
         "019_continuous_aggregates_scoped",
+        "020_audit_logs",
     ]
     migrations = [(name, *_load_migration(name)) for name in migration_names]
     

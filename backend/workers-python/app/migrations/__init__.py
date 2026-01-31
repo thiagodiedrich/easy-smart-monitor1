@@ -21,4 +21,5 @@ Ordem de execução:
 17. 017_equipments_sensors_telemetry_refactor - status enums e scope obrigatório
 18. 018_plans_limits_refactor - planos/limites com defaults e totais
 19. 019_continuous_aggregates_scoped - aggregates com tenant/org/workspace
+20. 020_audit_logs - auditoria administrativa
 """

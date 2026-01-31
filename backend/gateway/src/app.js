@@ -19,6 +19,8 @@ import { authRoutes } from './routes/auth.js';
 import { telemetryRoutes } from './routes/telemetry.js';
 import { analyticsRoutes } from './routes/analytics.js';
 import { healthRoutes } from './routes/health.js';
+import { adminRoutes } from './routes/admin.js';
+import { tenantRoutes } from './routes/tenant.js';
 import { logger } from './utils/logger.js';
 import config from './config.js';
 
@@ -176,6 +178,8 @@ await app.register(telemetryRoutes, { prefix: '/api/v1/telemetry' });
 await app.register(telemetryRoutes, { prefix: '/api/v1/telemetria' }); // Compatibilidade
 await app.register(analyticsRoutes, { prefix: '/api/v1' });
 await app.register(healthRoutes, { prefix: '/api/v1/health' });
+await app.register(adminRoutes, { prefix: '/api/v1/admin' });
+await app.register(tenantRoutes, { prefix: '/api/v1/tenant' });
 
 // Rota raiz
 app.get('/', async (request, reply) => {
