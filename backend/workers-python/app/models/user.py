@@ -6,7 +6,7 @@ Suporta dois tipos de usuários: Frontend e Device (IoT).
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import enum
@@ -36,6 +36,7 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=True)
     hashed_password = Column(String(255), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     
     # Tipo de usuário (frontend ou device)
     user_type = Column(

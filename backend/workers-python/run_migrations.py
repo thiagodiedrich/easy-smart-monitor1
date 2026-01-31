@@ -25,6 +25,7 @@ async def run_migrations(command):
         "004_continuous_aggregates_policies",
         "005_user_security_fields",
         "006_tenant_organization_workspace",
+        "007_tenant_id_users_equipments",
     ]
     migrations = [(name, *_load_migration(name)) for name in migration_names]
     

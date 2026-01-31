@@ -109,6 +109,7 @@ export async function sendTelemetryToKafka(claimCheck, metadata = {}) {
             metadata: {
               userId: metadata.userId,
               username: metadata.username,
+              tenantId: metadata.tenantId,
               requestId: metadata.requestId,
               itemsCount: metadata.itemsCount || 0,
             },
@@ -117,6 +118,7 @@ export async function sendTelemetryToKafka(claimCheck, metadata = {}) {
             'content-type': 'application/json',
             'message-type': 'claim-check',
             'user-id': (metadata.userId || metadata.username || '').toString(),
+            'tenant-id': (metadata.tenantId || '').toString(),
             'request-id': metadata.requestId || '',
             'items-count': (metadata.itemsCount || 0).toString(),
             'file-size': (claimCheck.file_size || 0).toString(),

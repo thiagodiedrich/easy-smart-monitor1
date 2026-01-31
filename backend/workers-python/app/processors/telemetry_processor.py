@@ -4,7 +4,7 @@ Processador de telemetria.
 Processa dados de telemetria recebidos do Kafka e insere no banco de dados.
 """
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -22,6 +22,7 @@ class TelemetryProcessor:
     async def process_bulk(
         self,
         user_id: int,
+        tenant_id: Optional[int],
         telemetry_data: List[Dict[str, Any]],
         db: AsyncSession,
     ) -> Dict[str, Any]:
@@ -63,6 +64,7 @@ class TelemetryProcessor:
                 if equipment is None:
                     equipment = await self._get_or_create_equipment(
                         user_id,
+                        tenant_id,
                         item,
                         db,
                     )
@@ -132,6 +134,7 @@ class TelemetryProcessor:
     async def _get_or_create_equipment(
         self,
         user_id: int,
+        tenant_id: Optional[int],
         item: Dict[str, Any],
         db: AsyncSession,
     ) -> Equipment:
@@ -144,6 +147,12 @@ class TelemetryProcessor:
         if equipment:
             if equipment.user_id != user_id:
                 raise ValueError(f"Equipamento {equip_uuid} não pertence ao usuário")
+            if tenant_id and equipment.tenant_id and equipment.tenant_id != tenant_id:
+                raise ValueError(f"Equipamento {equip_uuid} não pertence ao tenant")
+            if tenant_id and equipment.tenant_id is None:
+                equipment.tenant_id = tenant_id
+                db.add(equipment)
+                await db.flush()
             return equipment
         
         # Criar novo equipamento
@@ -156,6 +165,7 @@ class TelemetryProcessor:
             siren_active=item.get("equip_sirene_ativa", "NÃO") == "SIM",
             siren_time=item.get("equip_sirete_tempo", 120),
             user_id=user_id,
+            tenant_id=tenant_id,
         )
         
         db.add(equipment)

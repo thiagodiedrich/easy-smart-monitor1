@@ -33,7 +33,7 @@ export const UserType = {
  * @param {string} ipAddress - IP do cliente
  * @returns {Promise<Object|null>} Dados do usuário ou null se inválido
  */
-export async function validateUserCredentials(username, password, userType, ipAddress) {
+export async function validateUserCredentials(username, password, userType, ipAddress, tenantId = null) {
   try {
     // Buscar usuário no banco
     const query = `
@@ -42,6 +42,7 @@ export async function validateUserCredentials(username, password, userType, ipAd
         username,
         email,
         hashed_password,
+        tenant_id,
         user_type,
         status,
         is_active,
@@ -49,9 +50,10 @@ export async function validateUserCredentials(username, password, userType, ipAd
         locked_until
       FROM users
       WHERE username = $1 AND user_type = $2
+      ${tenantId ? 'AND tenant_id = $3' : ''}
     `;
-    
-    const result = await queryDatabase(query, [username, userType]);
+    const params = tenantId ? [username, userType, tenantId] : [username, userType];
+    const result = await queryDatabase(query, params);
     
     if (!result || result.length === 0) {
       logger.warn('Tentativa de login com usuário inexistente', {
@@ -123,6 +125,7 @@ export async function validateUserCredentials(username, password, userType, ipAd
       id: user.id,
       username: user.username,
       email: user.email,
+      tenant_id: user.tenant_id,
       user_type: user.user_type,
       status: user.status,
     };

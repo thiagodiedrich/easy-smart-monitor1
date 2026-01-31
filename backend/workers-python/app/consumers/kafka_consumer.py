@@ -121,11 +121,14 @@ class TelemetryKafkaConsumer:
                         isinstance(message_data, dict) and 
                         'claim_check' in message_data
                     )
+                    tenant_id = None
                     
                     if is_claim_check:
                         # CLAIM CHECK PATTERN: Baixar arquivo do storage
                         claim_check = message_data['claim_check']
                         storage_type = message_data.get('storage_type', 'minio')
+                        metadata = message_data.get('metadata') or {}
+                        tenant_id = metadata.get('tenantId') or message_data.get('tenant_id')
                         
                         logger.info(
                             "Processando Claim Check",
@@ -154,6 +157,7 @@ class TelemetryKafkaConsumer:
                     async with AsyncSessionLocal() as db:
                         result = await self.processor.process_bulk(
                             int(user_id) if user_id.isdigit() else 1,
+                            int(tenant_id) if tenant_id and str(tenant_id).isdigit() else None,
                             telemetry_data,
                             db,
                         )

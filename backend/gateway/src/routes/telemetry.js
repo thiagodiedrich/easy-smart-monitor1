@@ -102,6 +102,7 @@ export const telemetryRoutes = async (fastify) => {
     const { body: data } = request;
     const userId = request.user.sub; // Do JWT
     const requestId = request.id;
+    const tenantId = request.user.tenant_id || request.tenantContext?.tenantId;
     
     // Validação básica
     if (!Array.isArray(data) || data.length === 0) {
@@ -137,6 +138,7 @@ export const telemetryRoutes = async (fastify) => {
       const claimCheck = await saveTelemetryToStorage(data, {
         userId,
         username: request.user.sub,
+        tenantId,
         requestId,
         itemsCount: data.length,
       });
@@ -145,6 +147,7 @@ export const telemetryRoutes = async (fastify) => {
       await sendTelemetryToKafka(claimCheck, {
         userId,
         username: request.user.sub,
+        tenantId,
         requestId,
         itemsCount: data.length,
         timestamp: new Date().toISOString(),

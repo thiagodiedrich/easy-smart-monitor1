@@ -27,6 +27,7 @@ class Equipment(Base):
     siren_active = Column(Boolean, default=False, nullable=False)
     siren_time = Column(Integer, default=120, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
