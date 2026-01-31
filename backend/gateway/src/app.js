@@ -34,6 +34,25 @@ const app = Fastify({
   trustProxy: true, // Para rate limiting com proxy reverso
 });
 
+function getRoleName(role) {
+  if (!role) return null;
+  if (typeof role === 'string') return role;
+  if (Array.isArray(role)) {
+    if (role.includes(0) || role.includes('0')) return 'super';
+    if (role.includes('admin')) return 'admin';
+    if (role.includes('manager')) return 'manager';
+    if (role.includes('viewer')) return 'viewer';
+    return null;
+  }
+  if (typeof role === 'object') {
+    if (role[0] === true || role['0'] === true || role.super === true) return 'super';
+    if (role.role) return role.role;
+    if (role.name) return role.name;
+    return null;
+  }
+  return null;
+}
+
 // Registrar plugins
 await app.register(helmet, {
   contentSecurityPolicy: false, // Ajustar conforme necessário
@@ -98,6 +117,39 @@ app.addHook('onRequest', async (request) => {
   request.auditStartTime = Date.now();
 });
 
+const deviceAllowedRoutes = [
+  { method: 'POST', path: '/api/v1/auth/device/login' },
+  { method: 'POST', path: '/api/v1/auth/refresh' },
+  { method: 'GET', path: '/api/v1/auth/me' },
+  { method: 'POST', path: '/api/v1/telemetry/bulk' },
+  { method: 'POST', path: '/api/v1/telemetria/bulk' },
+  { method: 'GET', path: '/api/v1/tenant/workspaces' },
+];
+
+app.addHook('onRequest', async (request, reply) => {
+  if (!request.headers.authorization) {
+    return;
+  }
+  try {
+    await request.jwtVerify();
+  } catch {
+    return;
+  }
+  if (request.user?.user_type !== 'device') {
+    return;
+  }
+  const path = (request.url || '').split('?')[0];
+  const allowed = deviceAllowedRoutes.some(
+    (route) => route.method === request.method && route.path === path
+  );
+  if (!allowed) {
+    return reply.code(403).send({
+      error: 'FORBIDDEN',
+      message: 'Acesso restrito para usuário device',
+    });
+  }
+});
+
 app.addHook('onResponse', async (request, reply) => {
   if (!auditLogEnabled) {
     return;
@@ -114,6 +166,7 @@ app.addHook('onResponse', async (request, reply) => {
       user_agent: request.headers['user-agent'],
       request_id: request.id,
     };
+    const actorRole = getRoleName(request.user?.role);
     await queryDatabase(
       `
         INSERT INTO audit_logs (
@@ -129,7 +182,7 @@ app.addHook('onResponse', async (request, reply) => {
       [
         request.user?.tenant_id ?? null,
         request.user?.user_id ?? null,
-        request.user?.role ?? null,
+        actorRole,
         action,
         'api_request',
         request.id ? String(request.id) : null,

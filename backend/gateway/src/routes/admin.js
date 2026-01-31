@@ -41,6 +41,7 @@ function isSystemAdmin(request) {
 
 async function auditLog(request, action, targetType, targetId, metadata = {}) {
   try {
+    const actorRole = getRoleName(request.user?.role);
     await queryDatabase(
       `
         INSERT INTO audit_logs (
@@ -56,7 +57,7 @@ async function auditLog(request, action, targetType, targetId, metadata = {}) {
       [
         request.user?.tenant_id ?? null,
         request.user?.user_id ?? null,
-        request.user?.role ?? null,
+        actorRole,
         action,
         targetType,
         targetId ? String(targetId) : null,

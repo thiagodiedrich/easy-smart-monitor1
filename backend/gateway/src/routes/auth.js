@@ -16,6 +16,16 @@ import bcrypt from 'bcrypt';
 const maxAttempts = parseInt(process.env.LOGIN_MAX_ATTEMPTS || '5', 10);
 const blockMinutes = parseInt(process.env.LOGIN_BLOCK_MINUTES || '30', 10);
 
+function isValidDeviceScope(user) {
+  if (!user) return false;
+  if (Number(user.tenant_id) === 0) return false;
+  if (!Array.isArray(user.organization_id) || user.organization_id.length !== 1) return false;
+  if (user.organization_id.includes(0)) return false;
+  if (!Array.isArray(user.workspace_id) || user.workspace_id.length < 1) return false;
+  if (user.workspace_id.includes(0)) return false;
+  return true;
+}
+
 /**
  * Obtém IP real do cliente
  */
@@ -98,6 +108,13 @@ export const authRoutes = async (fastify) => {
       });
     }
     
+    if (!isValidDeviceScope(user)) {
+      return reply.code(403).send({
+        error: 'INVALID_SCOPE',
+        message: 'Usuário device deve ter 1 organization_id e 1+ workspace_id válidos',
+      });
+    }
+
     // Gerar tokens
     const accessToken = fastify.jwt.sign(
       { 
@@ -373,6 +390,13 @@ export const authRoutes = async (fastify) => {
   }, async (request, reply) => {
     try {
       await request.jwtVerify();
+
+      if (request.user.user_type === UserType.DEVICE && !isValidDeviceScope(request.user)) {
+        return reply.code(403).send({
+          error: 'INVALID_SCOPE',
+          message: 'Usuário device deve ter 1 organization_id e 1+ workspace_id válidos',
+        });
+      }
       
       return {
         username: request.user.sub,

@@ -141,6 +141,7 @@ function limitReached(limitValue, currentCount) {
 
 async function auditLog(request, action, targetType, targetId, metadata = {}) {
   try {
+    const actorRole = getRoleName(request.user?.role);
     await queryDatabase(
       `
         INSERT INTO audit_logs (
@@ -156,7 +157,7 @@ async function auditLog(request, action, targetType, targetId, metadata = {}) {
       [
         request.user?.tenant_id ?? null,
         request.user?.user_id ?? null,
-        request.user?.role ?? null,
+        actorRole,
         action,
         targetType,
         targetId ? String(targetId) : null,
@@ -173,6 +174,17 @@ export const tenantRoutes = async (fastify) => {
   fastify.addHook('onRequest', async (request, reply) => {
     try {
       await request.jwtVerify();
+      if (request.user?.user_type === 'device') {
+        const isWorkspacesGet = request.method === 'GET'
+          && (request.url || '').startsWith('/api/v1/tenant/workspaces');
+        if (isWorkspacesGet) {
+          return;
+        }
+        return reply.code(403).send({
+          error: 'FORBIDDEN',
+          message: 'Acesso restrito para usuário device',
+        });
+      }
       if (!isTenantAdmin(request)) {
         return reply.code(403).send({
           error: 'FORBIDDEN',
