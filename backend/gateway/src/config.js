@@ -63,4 +63,11 @@ export default {
     organizationHeader: process.env.ORGANIZATION_HEADER || 'x-organization-id',
     workspaceHeader: process.env.WORKSPACE_HEADER || 'x-workspace-id',
   },
+
+  // Quotas / Billing (Fase 5)
+  quota: {
+    enabled: (process.env.QUOTA_ENABLED || 'false').toLowerCase() === 'true',
+    enforce: (process.env.QUOTA_ENFORCE || 'false').toLowerCase() === 'true',
+    estimateBytes: (process.env.QUOTA_ESTIMATE_BYTES || 'false').toLowerCase() === 'true',
+  },
 };

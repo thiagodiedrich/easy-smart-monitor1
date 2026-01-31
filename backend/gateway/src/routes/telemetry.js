@@ -7,7 +7,45 @@
 import { sendTelemetryToKafka } from '../kafka/producer.js';
 import { saveTelemetryToStorage } from '../storage/storage.js';
 import { logger } from '../utils/logger.js';
+import { queryDatabase } from '../utils/database.js';
 import config from '../config.js';
+
+async function getTenantQuota(tenantId) {
+  const result = await queryDatabase(
+    `
+      SELECT
+        COALESCE(tl.items_per_day, p.items_per_day) AS items_per_day,
+        COALESCE(tl.sensors_per_day, p.sensors_per_day) AS sensors_per_day,
+        COALESCE(tl.bytes_per_day, p.bytes_per_day) AS bytes_per_day
+      FROM tenants t
+      LEFT JOIN plans p ON p.code = t.plan_code
+      LEFT JOIN tenant_limits tl ON tl.tenant_id = t.id
+      WHERE t.id = $1
+    `,
+    [tenantId]
+  );
+  return result?.[0] || null;
+}
+
+async function getTenantUsageToday(tenantId) {
+  const result = await queryDatabase(
+    `
+      SELECT items_count, sensors_count, bytes_ingested
+      FROM tenant_usage_daily
+      WHERE tenant_id = $1 AND day = CURRENT_DATE
+    `,
+    [tenantId]
+  );
+  return result?.[0] || { items_count: 0, sensors_count: 0, bytes_ingested: 0 };
+}
+
+function estimatePayloadBytes(data) {
+  try {
+    return Buffer.byteLength(JSON.stringify(data), 'utf8');
+  } catch {
+    return 0;
+  }
+}
 
 export const telemetryRoutes = async (fastify) => {
   // Middleware de autenticação (apenas devices podem enviar telemetria)
@@ -120,6 +158,39 @@ export const telemetryRoutes = async (fastify) => {
       return reply.code(400).send({
         error: `Lote muito grande. Máximo: ${maxSize} itens`,
       });
+    }
+
+    // Quotas por tenant (Fase 5)
+    if (config.quota.enabled && config.quota.enforce && tenantId) {
+      const quota = await getTenantQuota(tenantId);
+      if (quota) {
+        const usage = await getTenantUsageToday(tenantId);
+        const payloadBytes = quota.bytes_per_day
+          ? (config.quota.estimateBytes ? estimatePayloadBytes(data) : 0)
+          : 0;
+        const projectedItems = Number(usage.items_count || 0) + data.length;
+        const projectedSensors = Number(usage.sensors_count || 0) + totalSensors;
+        const projectedBytes = Number(usage.bytes_ingested || 0) + payloadBytes;
+
+        if (quota.items_per_day && projectedItems > Number(quota.items_per_day)) {
+          return reply.code(429).send({
+            error: 'QUOTA_EXCEEDED',
+            message: 'Limite diário de itens excedido',
+          });
+        }
+        if (quota.sensors_per_day && projectedSensors > Number(quota.sensors_per_day)) {
+          return reply.code(429).send({
+            error: 'QUOTA_EXCEEDED',
+            message: 'Limite diário de sensores excedido',
+          });
+        }
+        if (quota.bytes_per_day && projectedBytes > Number(quota.bytes_per_day)) {
+          return reply.code(429).send({
+            error: 'QUOTA_EXCEEDED',
+            message: 'Limite diário de bytes excedido',
+          });
+        }
+      }
     }
     
     // Validar estrutura básica

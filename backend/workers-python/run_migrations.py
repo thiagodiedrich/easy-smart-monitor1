@@ -28,6 +28,7 @@ async def run_migrations(command):
         "007_tenant_id_users_equipments",
         "008_org_workspace_in_equipments",
         "009_tenant_usage_daily",
+        "010_plans_and_limits",
     ]
     migrations = [(name, *_load_migration(name)) for name in migration_names]
     

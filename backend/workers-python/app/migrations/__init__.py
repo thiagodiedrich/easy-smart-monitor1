@@ -11,4 +11,5 @@ Ordem de execução:
 7. 007_tenant_id_users_equipments - tenant_id em users e equipments (Fase 1)
 8. 008_org_workspace_in_equipments - organization_id e workspace_id em equipments (Fase 2)
 9. 009_tenant_usage_daily - tabela de uso diário por tenant (Fase 4)
+10. 010_plans_and_limits - planos e limites por tenant (Fase 5)
 """
