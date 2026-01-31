@@ -1,16 +1,22 @@
 # Changelog - Easy Smart Monitor Backend
 
+Todas as mudanças notáveis do backend estão documentadas neste arquivo.  
+**Versão estável atual:** 1.1.0
+
+---
+
 ## [1.1.0] - 2024-01-15 - Versão Estável
 
 ### 🎯 Versão Estável de Produção
 
-Esta é a versão estável 1.1.0 do backend Easy Smart Monitor, consolidando todas as funcionalidades implementadas e otimizações de segurança.
+Esta é a versão estável 1.1.0 do backend Easy Smart Monitor. O código da pasta `backend/` e a documentação (README, CHANGELOG, VERSION e demais .md) estão alinhados a esta versão.
 
 ### ✨ Melhorias e Correções
 
 - ✅ **Segurança Aprimorada**: Defense in Depth implementado
   - Autenticação separada para dispositivos e frontend
   - Gerenciamento de status de usuários (Ativo, Inativo, Bloqueado, Temporariamente Bloqueado)
+  - **Migration 005_user_security_fields**: enums UserType e UserStatus, campos de tentativas de login, bloqueio temporário e metadados de segurança na tabela `users`
   - Penalty Box com backoff exponencial
   - Prevenção de uploads concorrentes
   - Blacklist em Redis
@@ -18,8 +24,12 @@ Esta é a versão estável 1.1.0 do backend Easy Smart Monitor, consolidando tod
 
 - ✅ **Limpeza de Código**: Remoção de imports não utilizados
 - ✅ **Correção Docker Compose**: Volumes duplicados e incorretos corrigidos
-- ✅ **Documentação Atualizada**: Todos os arquivos .md atualizados para v1.1.0
+- ✅ **Documentação Atualizada**: README, CHANGELOG, VERSION e todos os .md alinhados à v1.1.0
 - ✅ **Swagger/OpenAPI**: Documentação interativa adicionada em `/api/v1/docs`
+
+### 📝 Migrations (1.1.0)
+
+- **005_user_security_fields**: Campos de segurança do usuário (enums UserType e UserStatus, tentativas de login, bloqueio temporário, metadados na tabela `users`)
 
 ### 📊 Funcionalidades Mantidas
 
@@ -115,6 +125,7 @@ Esta é a primeira versão estável do backend Easy Smart Monitor, implementando
 
 ### 📝 Migrations
 
+- **001_base_tables**: Cria tabelas base (users, equipments, sensors, telemetry_data)
 - **002_timescaledb_hypertable**: Cria hypertable
 - **003_continuous_aggregates**: Cria continuous aggregates
 - **004_continuous_aggregates_policies**: Configura políticas
@@ -144,4 +155,4 @@ Esta é a primeira versão estável do backend Easy Smart Monitor, implementando
 
 ---
 
-**Versão 1.1.0 Estável - Pronta para Produção!** 🚀
+**Versão 1.1.0 Estável - Código e documentação alinhados. Pronta para Produção!** 🚀

@@ -16,9 +16,14 @@ async def upgrade():
             # 1. Criar extensão TimescaleDB (se não existir)
             await db.execute(text("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;"))
             await db.commit()
-            
-            # 2. Converter telemetry_data em hypertable
-            # Usa timestamp como coluna de tempo e particiona por equipment_id
+
+            # 2. Remover PK apenas em id (TimescaleDB exige que a coluna de particionamento esteja na PK/unique)
+            await db.execute(text("""
+                ALTER TABLE telemetry_data DROP CONSTRAINT IF EXISTS telemetry_data_pkey;
+            """))
+            await db.commit()
+
+            # 3. Converter telemetry_data em hypertable
             await db.execute(text("""
                 SELECT create_hypertable(
                     'telemetry_data',
@@ -28,8 +33,15 @@ async def upgrade():
                 );
             """))
             await db.commit()
-            
-            # 3. Criar índices otimizados para queries analíticas
+
+            # 4. Recriar PK composta (timestamp, id) para unicidade e compatibilidade
+            await db.execute(text("""
+                ALTER TABLE telemetry_data ADD CONSTRAINT telemetry_data_pkey
+                PRIMARY KEY (timestamp, id);
+            """))
+            await db.commit()
+
+            # 5. Criar índices otimizados para queries analíticas
             await db.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_telemetry_equipment_timestamp 
                 ON telemetry_data (equipment_id, timestamp DESC);

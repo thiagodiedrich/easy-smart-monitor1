@@ -27,7 +27,8 @@ class TelemetryData(Base):
     status = Column(String(50), nullable=True)
     timestamp = Column(DateTime, nullable=False, index=True)
     
-    metadata = Column(JSONB, nullable=True)
+    # Nome da coluna no DB: 'metadata'; atributo Python: extra_metadata (metadata é reservado no SQLAlchemy)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     

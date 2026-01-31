@@ -23,18 +23,24 @@ export default {
     topic: process.env.KAFKA_TOPIC || 'telemetry.raw',
   },
   
-  // Storage (MinIO/S3)
-  storage: {
-    type: process.env.STORAGE_TYPE || 'minio', // 'minio' ou 'local'
-    endpoint: process.env.MINIO_ENDPOINT || 'localhost',
-    port: process.env.MINIO_PORT || '9000',
-    accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-    secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
-    bucket: process.env.MINIO_BUCKET || 'telemetry-raw',
-    region: process.env.MINIO_REGION || 'us-east-1',
-    useSSL: process.env.MINIO_USE_SSL || 'false',
-    localPath: process.env.STORAGE_LOCAL_PATH || '/app/storage',
-  },
+  // Storage (MinIO/S3) - endPoint deve ser só host; porta fica em port (exigência do cliente MinIO)
+  storage: (() => {
+    const raw = process.env.MINIO_ENDPOINT || 'localhost';
+    const hasPort = raw.includes(':');
+    const endpoint = hasPort ? raw.slice(0, raw.indexOf(':')) : raw;
+    const port = process.env.MINIO_PORT || (hasPort ? raw.slice(raw.indexOf(':') + 1) : '9000');
+    return {
+      type: process.env.STORAGE_TYPE || 'minio',
+      endpoint,
+      port: String(port),
+      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+      secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+      bucket: process.env.MINIO_BUCKET || 'telemetry-raw',
+      region: process.env.MINIO_REGION || 'us-east-1',
+      useSSL: process.env.MINIO_USE_SSL || 'false',
+      localPath: process.env.STORAGE_LOCAL_PATH || '/app/storage',
+    };
+  })(),
   
   // Redis
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379/0',

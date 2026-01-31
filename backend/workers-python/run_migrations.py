@@ -6,22 +6,26 @@ Uso:
     python run_migrations.py downgrade
 """
 import asyncio
+import importlib
 import sys
-from app.migrations.002_timescaledb_hypertable import upgrade as upgrade_002_impl, downgrade as downgrade_002_impl
-from app.migrations.003_continuous_aggregates import upgrade as upgrade_003_impl, downgrade as downgrade_003_impl
-from app.migrations.004_continuous_aggregates_policies import upgrade as upgrade_004_impl, downgrade as downgrade_004_impl
+
+
+def _load_migration(module_name):
+    """Carrega upgrade/downgrade de um módulo cujo nome começa com número (ex.: 002_...)."""
+    mod = importlib.import_module(f"app.migrations.{module_name}")
+    return mod.upgrade, mod.downgrade
 
 
 async def run_migrations(command):
     """Executa todas as migrations."""
-    from app.migrations.005_user_security_fields import upgrade as upgrade_005_impl, downgrade as downgrade_005_impl
-    
-    migrations = [
-        ("002_timescaledb_hypertable", upgrade_002_impl, downgrade_002_impl),
-        ("003_continuous_aggregates", upgrade_003_impl, downgrade_003_impl),
-        ("004_continuous_aggregates_policies", upgrade_004_impl, downgrade_004_impl),
-        ("005_user_security_fields", upgrade_005_impl, downgrade_005_impl),
+    migration_names = [
+        "001_base_tables",
+        "002_timescaledb_hypertable",
+        "003_continuous_aggregates",
+        "004_continuous_aggregates_policies",
+        "005_user_security_fields",
     ]
+    migrations = [(name, *_load_migration(name)) for name in migration_names]
     
     if command == "upgrade":
         print("🚀 Aplicando migrations...")

@@ -2,6 +2,7 @@
  * Kafka Producer
  * 
  * Envia mensagens para o tópico de telemetria no Kafka.
+ * Conexão é feita em background com retry para não derrubar o Gateway se o Kafka ainda não estiver pronto.
  */
 import { Kafka } from 'kafkajs';
 import config from '../config.js';
@@ -18,7 +19,7 @@ const kafka = new Kafka({
     maxRetryTime: 30000,
   },
   requestTimeout: 30000,
-  connectionTimeout: 3000,
+  connectionTimeout: 5000,
 });
 
 // Criar producer
@@ -29,32 +30,48 @@ export const kafkaProducer = kafka.producer({
   allowAutoTopicCreation: true,
 });
 
-// Conectar producer
 let isConnected = false;
+const maxConnectRetries = 30;
+const connectRetryDelayMs = 2000;
 
 export async function connectProducer() {
   if (isConnected) {
     return;
   }
-  
-  try {
-    await kafkaProducer.connect();
-    isConnected = true;
-    logger.info('Kafka producer conectado', { 
-      brokers: config.kafka.brokers,
-      topic: config.kafka.topic,
-    });
-  } catch (error) {
-    logger.error('Erro ao conectar Kafka producer', { 
-      error: error.message,
-      brokers: config.kafka.brokers,
-    });
-    throw error;
+
+  for (let attempt = 1; attempt <= maxConnectRetries; attempt++) {
+    try {
+      await kafkaProducer.connect();
+      isConnected = true;
+      logger.info('Kafka producer conectado', {
+        brokers: config.kafka.brokers,
+        topic: config.kafka.topic,
+      });
+      return;
+    } catch (error) {
+      logger.warn('Tentativa de conexão ao Kafka falhou', {
+        attempt,
+        maxRetries: maxConnectRetries,
+        error: error.message,
+        brokers: config.kafka.brokers,
+      });
+      if (attempt === maxConnectRetries) {
+        logger.error('Kafka producer: número máximo de tentativas atingido; Gateway continua. Será tentado de novo no próximo envio.', {
+          brokers: config.kafka.brokers,
+        });
+        return; // Não lançar: Gateway permanece no ar e tentará de novo no primeiro envio
+      }
+      await new Promise((r) => setTimeout(r, connectRetryDelayMs));
+    }
   }
 }
 
-// Conectar na inicialização
-await connectProducer();
+// Conectar em background para não bloquear a subida do Gateway (Kafka pode demorar a ficar saudável)
+connectProducer().catch((err) => {
+  logger.error('Falha ao conectar Kafka em background; será tentado de novo no primeiro envio', {
+    error: err.message,
+  });
+});
 
 /**
  * Envia Claim Check (referência) para Kafka
@@ -69,7 +86,10 @@ export async function sendTelemetryToKafka(claimCheck, metadata = {}) {
   if (!isConnected) {
     await connectProducer();
   }
-  
+  if (!isConnected) {
+    throw new Error('Kafka indisponível. Tente novamente em alguns instantes.');
+  }
+
   try {
     // Criar mensagem com Claim Check (apenas referência ~1KB)
     const message = {

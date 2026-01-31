@@ -1,10 +1,12 @@
 # Easy Smart Monitor - Backend API v1.1.0
 
+**Versão estável:** 1.1.0
+
 API RESTful escalável para recebimento e processamento de dados de telemetria do Easy Smart Monitor.
 
 ## 🎯 Versão 1.1.0 Estável
 
-Esta é a versão estável do backend, implementando:
+Esta é a versão estável do backend (código e documentação alinhados à v1.1.0), implementando:
 - ✅ **Claim Check Pattern** para payloads grandes
 - ✅ **TimescaleDB Continuous Aggregates** para consultas otimizadas
 - ✅ **Arquitetura distribuída** (Node.js Gateway + Kafka + Python Workers)
@@ -83,12 +85,11 @@ MinIO Console: `http://localhost:9001` (minioadmin/minioadmin)
 Após iniciar os serviços, execute as migrations:
 
 ```bash
-# Entrar no container do worker
-docker-compose exec worker bash
+# Opção 1: container temporário (funciona mesmo se o worker estiver reiniciando)
+docker compose run --rm worker python run_migrations.py
 
-# Executar migrations
-cd /app
-python run_migrations.py upgrade
+# Opção 2: dentro do container do worker (se estiver estável)
+docker compose exec worker python run_migrations.py
 ```
 
 ### Testar a API
@@ -165,19 +166,21 @@ backend/
 │   │   ├── processors/     # Processadores de telemetria
 │   │   ├── storage/        # Cliente Storage (download)
 │   │   ├── models/         # Modelos SQLAlchemy
-│   │   ├── migrations/     # Migrations TimescaleDB
+│   │   ├── migrations/     # Migrations TimescaleDB (001 a 005)
 │   │   └── core/           # Configurações
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── run_migrations.py   # Script de migrations
 │
 ├── docker-compose.yml       # Orquestração de serviços
-├── README.md               # Este arquivo
-├── ARCHITECTURE.md         # Detalhes da arquitetura
-├── DEPLOYMENT.md           # Guia de deploy
-├── TIMESCALEDB_SETUP.md    # Setup TimescaleDB
-├── API_ANALYTICS.md        # Documentação endpoints analytics
-└── CHANGELOG.md            # Histórico de versões
+├── VERSION                  # Versão do backend (1.1.0)
+├── README.md                # Este arquivo
+├── ARCHITECTURE.md          # Detalhes da arquitetura
+├── DEPLOYMENT.md            # Guia de deploy
+├── INSTALACAO_AAPANEL.md    # Instalação no aaPanel
+├── TIMESCALEDB_SETUP.md     # Setup TimescaleDB
+├── API_ANALYTICS.md         # Documentação endpoints analytics
+└── CHANGELOG.md             # Histórico de versões
 ```
 
 ## 📚 Documentação da API
@@ -324,6 +327,7 @@ Proprietário - Datacase
 - ✅ **Segurança Aprimorada**: Defense in Depth implementado
   - Autenticação separada para dispositivos e frontend
   - Gerenciamento de status de usuários (Ativo, Inativo, Bloqueado, Temporariamente Bloqueado)
+  - Migration **005_user_security_fields**: campos UserType, UserStatus, tentativas de login, bloqueio temporário
   - Penalty Box com backoff exponencial
   - Prevenção de uploads concorrentes
   - Blacklist em Redis
@@ -331,7 +335,7 @@ Proprietário - Datacase
 - ✅ **Swagger/OpenAPI**: Documentação interativa adicionada em `/api/v1/docs`
 - ✅ **Limpeza de Código**: Remoção de imports não utilizados
 - ✅ **Correção Docker Compose**: Volumes duplicados e incorretos corrigidos
-- ✅ **Documentação Atualizada**: Todos os arquivos .md atualizados
+- ✅ **Documentação Atualizada**: Todos os arquivos .md e VERSION alinhados à v1.1.0
 
 **Funcionalidades Mantidas:**
 - Arquitetura Distribuída (Node.js Gateway + Kafka + Python Workers)
@@ -366,10 +370,12 @@ Para o changelog completo e detalhado, consulte: **CHANGELOG.md**
 - **Swagger/OpenAPI**: `http://localhost:8000/api/v1/docs` (Documentação interativa)
 - **ARCHITECTURE.md**: Detalhes técnicos da arquitetura
 - **DEPLOYMENT.md**: Guia completo de deploy e configuração
+- **INSTALACAO_AAPANEL.md**: Instalação e configuração no aaPanel
 - **TIMESCALEDB_SETUP.md**: Setup e configuração do TimescaleDB
 - **API_ANALYTICS.md**: Documentação detalhada dos endpoints de analytics
 - **SECURITY.md**: Detalhes de segurança e Defense in Depth
 - **CHANGELOG.md**: Histórico completo e detalhado de versões
+- **VERSION**: Arquivo com a versão atual do backend (1.1.0)
 
 ## 🆘 Suporte
 

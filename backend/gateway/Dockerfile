@@ -5,18 +5,17 @@ WORKDIR /app
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production
+# Instalar apenas dependências de produção (--omit=dev substitui o obsoleto --only=production).
+# Usa npm install porque npm ci exige package-lock.json; para builds reproduzíveis, gere o lock e use: npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copiar código
 COPY . .
 
-# Criar usuário não-root
-RUN addgroup -g 1000 nodeuser && \
-    adduser -D -u 1000 -G nodeuser nodeuser && \
-    chown -R nodeuser:nodeuser /app
+# Usar o usuário não-root já presente na imagem node:alpine (evita conflito de UID/GID no Alpine)
+RUN chown -R node:node /app
 
-USER nodeuser
+USER node
 
 EXPOSE 8000
 

@@ -257,5 +257,5 @@ class TelemetryProcessor:
             "value": valor,
             "status": status,
             "timestamp": timestamp,
-            "metadata": metadata if metadata else None,
+            "extra_metadata": metadata if metadata else None,
         }
