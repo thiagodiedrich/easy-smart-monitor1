@@ -50,6 +50,9 @@ export default {
   
   // CORS
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
+
+  // Swagger/OpenAPI (opcional - útil atrás de proxy HTTPS)
+  swaggerServerUrl: process.env.SWAGGER_SERVER_URL || process.env.PUBLIC_URL || '',
   
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',

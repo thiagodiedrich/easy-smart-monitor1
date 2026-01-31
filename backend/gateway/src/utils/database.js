@@ -10,6 +10,27 @@ import config from '../config.js';
 const { Pool } = pg;
 
 let pool = null;
+const postgresDebug = (process.env.POSTGRES_DEBUG || 'false').toLowerCase() === 'true';
+
+function redactRow(row) {
+  if (!row || typeof row !== 'object') {
+    return row;
+  }
+  const redacted = { ...row };
+  const sensitiveKeys = [
+    'hashed_password',
+    'password',
+    'refresh_token_hash',
+    'refresh_token_expires_at',
+    'secret',
+  ];
+  for (const key of sensitiveKeys) {
+    if (key in redacted) {
+      redacted[key] = '[REDACTED]';
+    }
+  }
+  return redacted;
+}
 
 /**
  * Inicializa pool de conexões
@@ -52,6 +73,14 @@ export async function queryDatabase(query, params = []) {
   
   try {
     const result = await client.query(query, params);
+    if (postgresDebug) {
+      logger.info('Postgres debug: query result', {
+        query,
+        params,
+        rowCount: result?.rowCount ?? 0,
+        rows: (result?.rows || []).map(redactRow),
+      });
+    }
     return result.rows;
   } catch (error) {
     logger.error('Erro ao executar query', {

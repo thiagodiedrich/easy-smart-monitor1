@@ -1,4 +1,4 @@
-# ✅ Segurança Implementada - Defense in Depth v1.2.8.1
+# ✅ Segurança Implementada - Defense in Depth v1.3.0
 
 ## 🎯 Status: Implementação Completa
 
@@ -189,4 +189,4 @@ O backend está **completo, otimizado e seguro**:
 3. ✅ **Autenticação**: Separada por tipo (device/frontend)
 4. ✅ **Otimizações**: Bulk inserts, Continuous Aggregates, Claim Check Pattern
 
-**Backend v1.2.8.1 estável, seguro e pronto para produção!** 🚀🛡️
+**Backend v1.3.0 estável, seguro e pronto para produção!** 🚀🛡️

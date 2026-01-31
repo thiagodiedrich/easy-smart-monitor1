@@ -1,22 +1,29 @@
 # Changelog - Easy Smart Monitor Backend
 
 Todas as mudanças notáveis do backend estão documentadas neste arquivo.  
-**Versão estável atual:** 1.2.8.1
+**Versão estável atual:** 1.3.0
 
 ---
 
-## [1.2.8.1] - 2024-02-09 - Hotfixes de Migração e Setup
+## [1.3.0] - 2024-02-09 - Estável Atualizada
 
 ### ✨ Entregas
 - ✅ Criação automática do banco antes das migrations
-- ✅ Correções em migrations (007, 010, 017) para ambientes existentes
-- ✅ Compose e config lendo `POSTGRES_*` do `.env`
+- ✅ Correções em migrations (007, 010, 017, 021, 022, 023) para ambientes existentes
+- ✅ Swagger por domínio HTTPS (URL pública configurável)
+- ✅ Debug centralizado do PostgreSQL (query + retorno mascarado)
+- ✅ Bootstrap master admin reforçado (tenant/org/workspace sistema)
+- ✅ Dashboard de governança (limits, usage, alerts por tenant)
+- ✅ Compose/config lendo `POSTGRES_*` e `MASTER_ADMIN_*` do `.env`
 - ✅ Docs atualizados para o fluxo `run_migrations.py upgrade`
 
-### 📝 Migrations (1.2.8.1)
+### 📝 Migrations (1.3.0)
 - **007_tenant_id_users_equipments**: fallback quando `equipments.user_id` não existe
 - **010_plans_and_limits**: defaults `0` para limites nulos
 - **017_equipments_sensors_telemetry_refactor**: cast de `status` para `text` no `lower()`
+- **021_fix_usertype_enum**: corrige enum `usertype`
+- **022_user_type_default_frontend**: default `frontend` em `user_type`
+- **023_fix_userstatus_enum**: corrige enum `userstatus`
 
 ### 🧰 Utilitários
 - **workers-python/ensure_database.py**: garante o banco antes das migrations

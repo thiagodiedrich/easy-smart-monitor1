@@ -1,4 +1,4 @@
-# Segurança - Defense in Depth v1.2.8.1
+# Segurança - Defense in Depth v1.3.0
 
 ## 🛡️ Arquitetura de Segurança
 

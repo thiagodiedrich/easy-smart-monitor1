@@ -56,6 +56,7 @@ export async function validateUserCredentials(username, password, userType, ipAd
     `;
     const params = tenantId ? [username, userType, tenantId] : [username, userType];
     const result = await queryDatabase(query, params);
+
     
     if (!result || result.length === 0) {
       logger.warn('Tentativa de login com usuário inexistente', {

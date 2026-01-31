@@ -1,8 +1,8 @@
-# Arquitetura do Backend - Easy Smart Monitor v1.2.8.1
+# Arquitetura do Backend - Easy Smart Monitor v1.3.0
 
 ## 📐 Visão Geral
 
-Este documento descreve a arquitetura do backend da API Easy Smart Monitor v1.2.8.1, implementando o **Claim Check Pattern** e **TimescaleDB Continuous Aggregates** para processar payloads grandes de telemetria de forma escalável.
+Este documento descreve a arquitetura do backend da API Easy Smart Monitor v1.3.0, implementando o **Claim Check Pattern** e **TimescaleDB Continuous Aggregates** para processar payloads grandes de telemetria de forma escalável.
 
 ## 🏗️ Arquitetura de Alto Nível
 
@@ -451,4 +451,4 @@ Todas as configurações via `.env`:
 
 ---
 
-**Arquitetura v1.2.8.1 escalável e robusta para milhões de pontos de telemetria!** 🚀
+**Arquitetura v1.3.0 escalável e robusta para milhões de pontos de telemetria!** 🚀

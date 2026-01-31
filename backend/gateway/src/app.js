@@ -50,16 +50,15 @@ await app.register(swagger, {
     info: {
       title: 'Easy Smart Monitor API',
       description: 'API RESTful escalável para recebimento e processamento de dados de telemetria',
-      version: '1.2.8.1',
+      version: '1.3.0',
       contact: {
         name: 'Datacase',
       },
     },
     servers: [
-      {
-        url: `http://${config.host}:${config.port}`,
-        description: 'Servidor Local',
-      },
+      config.swaggerServerUrl
+        ? { url: config.swaggerServerUrl, description: 'Servidor Público' }
+        : { url: `http://${config.host}:${config.port}`, description: 'Servidor Local' },
     ],
     tags: [
       { name: 'Autenticação', description: 'Endpoints de autenticação e autorização' },
@@ -76,6 +75,9 @@ await app.register(swagger, {
         },
       },
     },
+    security: [
+      { bearerAuth: [] },
+    ],
   },
 });
 
@@ -185,7 +187,7 @@ await app.register(tenantRoutes, { prefix: '/api/v1/tenant' });
 app.get('/', async (request, reply) => {
   return {
     name: 'Easy Smart Monitor Gateway',
-      version: '1.2.8.1',
+      version: '1.3.0',
     status: 'online',
     docs: '/api/v1/docs',
   };

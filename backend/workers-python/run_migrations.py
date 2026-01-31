@@ -41,6 +41,9 @@ async def run_migrations(command):
         "018_plans_limits_refactor",
         "019_continuous_aggregates_scoped",
         "020_audit_logs",
+        "021_fix_usertype_enum",
+        "022_user_type_default_frontend",
+        "023_fix_userstatus_enum",
     ]
     migrations = [(name, *_load_migration(name)) for name in migration_names]
     

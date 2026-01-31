@@ -382,6 +382,12 @@ export const authRoutes = async (fastify) => {
         device_id: request.user.device_id,
       };
     } catch (error) {
+      logger.warn('Auth /me não autorizado', {
+        error: error.message,
+        hasAuthorizationHeader: Boolean(request.headers.authorization),
+        forwardedProto: request.headers['x-forwarded-proto'],
+        forwardedFor: request.headers['x-forwarded-for'],
+      });
       return reply.code(401).send({ 
         error: 'UNAUTHORIZED',
         message: 'Não autorizado' 

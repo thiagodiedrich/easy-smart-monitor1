@@ -1,10 +1,10 @@
-# TimescaleDB - Continuous Aggregates Setup v1.2.8.1
+# TimescaleDB - Continuous Aggregates Setup v1.3.0
 
 ## 🎯 Objetivo
 
 Implementar **Continuous Aggregates** do TimescaleDB para otimizar consultas analíticas, reduzindo tempo de resposta de segundos para milissegundos.
 
-**Versão**: 1.2.8.1 Estável
+**Versão**: 1.3.0 Estável
 
 ## 🎯 Objetivo
 

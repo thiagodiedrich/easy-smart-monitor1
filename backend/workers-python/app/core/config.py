@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     
     # Aplicação
     APP_NAME: str = Field(default="Easy Smart Monitor Workers", description="Nome da aplicação")
-    APP_VERSION: str = Field(default="1.2.8.1", description="Versão da aplicação")
+    APP_VERSION: str = Field(default="1.3.0", description="Versão da aplicação")
     DEBUG: bool = Field(default=False, description="Modo debug")
     
     # Banco de Dados

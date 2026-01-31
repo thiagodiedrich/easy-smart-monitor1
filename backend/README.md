@@ -1,12 +1,12 @@
-# Easy Smart Monitor - Backend API v1.2.8.1
+# Easy Smart Monitor - Backend API v1.3.0
 
-**Versão estável:** 1.2.8.1
+**Versão estável:** 1.3.0
 
 API RESTful escalável para recebimento e processamento de dados de telemetria do Easy Smart Monitor.
 
-## 🎯 Versão 1.2.8.1 Estável
+## 🎯 Versão 1.3.0 Estável
 
-Esta é a versão estável do backend (código e documentação alinhados à v1.2.8.1), implementando:
+Esta é a versão estável do backend (código e documentação alinhados à v1.3.0), implementando:
 - ✅ **Claim Check Pattern** para payloads grandes
 - ✅ **TimescaleDB Continuous Aggregates** para consultas otimizadas
 - ✅ **Arquitetura distribuída** (Node.js Gateway + Kafka + Python Workers)
@@ -177,7 +177,7 @@ backend/
 │   └── run_migrations.py   # Script de migrations
 │
 ├── docker-compose.yml       # Orquestração de serviços
-├── VERSION                  # Versão do backend (1.2.8.1)
+├── VERSION                  # Versão do backend (1.3.0)
 ├── README.md                # Este arquivo
 ├── docs/                    # Documentação detalhada
 │   ├── API_ANALYTICS.md
@@ -330,13 +330,16 @@ Proprietário - Datacase
 
 ## 📋 Histórico de Versões (Changelog)
 
-### [1.2.8.1] - 2024-02-09 - Hotfixes de Migração e Setup
+### [1.3.0] - 2024-02-09 - Estável Atualizada
 
 **Melhorias e Correções:**
-- ✅ **Migrations mais resilientes** (007, 010, 017) em bases existentes
+- ✅ **Migrations mais resilientes** (007, 010, 017, 021, 022, 023) em bases existentes
 - ✅ **Criação automática do banco** antes das migrations
-- ✅ **Compose/config** lendo `POSTGRES_*` do `.env`
-- ✅ **Documentação atualizada** para `run_migrations.py upgrade`
+- ✅ **Swagger por domínio HTTPS** (URL pública configurável)
+- ✅ **Debug centralizado do PostgreSQL** (query + retorno mascarado)
+- ✅ **Bootstrap master admin** reforçado (tenant/org/workspace sistema)
+- ✅ **Dashboards de governança** (limits/usage/alerts no tenant)
+- ✅ **Compose/config** lendo `POSTGRES_*` e `MASTER_ADMIN_*` do `.env`
 
 **Funcionalidades Mantidas:**
 - Arquitetura Distribuída (Node.js Gateway + Kafka + Python Workers)
@@ -377,7 +380,7 @@ Para o changelog completo e detalhado, consulte: **CHANGELOG.md**
 - **docs/API_ANALYTICS.md**: Documentação detalhada dos endpoints de analytics
 - **docs/SECURITY.md**: Detalhes de segurança e Defense in Depth
 - **CHANGELOG.md**: Histórico completo e detalhado de versões
-- **VERSION**: Arquivo com a versão atual do backend (1.2.8.1)
+- **VERSION**: Arquivo com a versão atual do backend (1.3.0)
 
 ## 🆘 Suporte
 
@@ -389,4 +392,4 @@ Para problemas ou dúvidas:
 
 ---
 
-**Backend v1.2.8.1 estável - Pronto para produção!** 🚀
+**Backend v1.3.0 estável - Pronto para produção!** 🚀

@@ -27,6 +27,7 @@ export async function bootstrapMasterAdmin() {
   const tenantId = parseIntOrNull(process.env.MASTER_ADMIN_TENANT_ID, 0);
   const organizationId = parseIntOrNull(process.env.MASTER_ADMIN_ORGANIZATION_ID, 0);
   const workspaceId = parseIntOrNull(process.env.MASTER_ADMIN_WORKSPACE_ID, 0);
+  const defaultPlanCode = process.env.DEFAULT_PLAN_CODE || null;
 
   if (!username || !password) {
     logger.warn('MASTER_ADMIN habilitado, mas username/senha não definidos');
@@ -41,10 +42,43 @@ export async function bootstrapMasterAdmin() {
     );
     if (!tenantExists || tenantExists.length === 0) {
       await queryDatabase(
-        'INSERT INTO tenants (id, name, slug, status) VALUES ($1, $2, $3, $4)',
-        [0, 'System', 'system', 'active']
+        `
+          INSERT INTO tenants (id, name, slug, status, plan_code, is_white_label, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, FALSE, NOW(), NOW())
+        `,
+        [0, 'System', 'system', 'active', defaultPlanCode]
       );
       logger.info('Tenant sistema criado (id=0)');
+    }
+
+    const orgExists = await queryDatabase(
+      'SELECT id FROM organizations WHERE id = $1',
+      [organizationId]
+    );
+    if (!orgExists || orgExists.length === 0) {
+      await queryDatabase(
+        `
+          INSERT INTO organizations (id, tenant_id, name, created_at, updated_at)
+          VALUES ($1, $2, $3, NOW(), NOW())
+          ON CONFLICT DO NOTHING
+        `,
+        [organizationId, tenantId, 'System Org']
+      );
+    }
+
+    const wsExists = await queryDatabase(
+      'SELECT id FROM workspaces WHERE id = $1',
+      [workspaceId]
+    );
+    if (!wsExists || wsExists.length === 0) {
+      await queryDatabase(
+        `
+          INSERT INTO workspaces (id, organization_id, name, created_at, updated_at)
+          VALUES ($1, $2, $3, NOW(), NOW())
+          ON CONFLICT DO NOTHING
+        `,
+        [workspaceId, organizationId, 'System Workspace']
+      );
     }
   }
 
@@ -68,11 +102,15 @@ export async function bootstrapMasterAdmin() {
         hashed_password,
         user_type,
         status,
+        failed_login_attempts,
+        locked_until,
         tenant_id,
         organization_id,
         workspace_id,
-        role
-      ) VALUES ($1, $2, $3, 'frontend', 'active', $4, $5, $6, 'admin')
+        role,
+        created_at,
+        updated_at
+      ) VALUES ($1, $2, $3, 'frontend', 'active', 0, NULL, $4, $5, $6, 'admin', NOW(), NOW())
     `,
     [username, email, hashedPassword, tenantId, [organizationId], [workspaceId]]
   );

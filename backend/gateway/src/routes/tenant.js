@@ -55,6 +55,38 @@ async function validateOrgWorkspace(tenantId, organizationIds, workspaceIds) {
   return { ok: true };
 }
 
+async function getTenantLimits(tenantId) {
+  const result = await queryDatabase(
+    `
+      SELECT
+        t.plan_code,
+        p.name AS plan_name,
+        COALESCE(tl.items_per_day, p.items_per_day, 0) AS items_per_day,
+        COALESCE(tl.sensors_per_day, p.sensors_per_day, 0) AS sensors_per_day,
+        COALESCE(tl.bytes_per_day, p.bytes_per_day, 0) AS bytes_per_day,
+        COALESCE(tl.equipments_total, p.equipments_total, 0) AS equipments_total,
+        COALESCE(tl.sensors_total, p.sensors_total, 0) AS sensors_total,
+        COALESCE(tl.users_total, p.users_total, 0) AS users_total,
+        COALESCE(tl.organization_total, p.organization_total, 0) AS organization_total,
+        COALESCE(tl.workspace_total, p.workspace_total, 0) AS workspace_total
+      FROM tenants t
+      LEFT JOIN plans p ON t.plan_code = p.code
+      LEFT JOIN tenant_limits tl ON tl.tenant_id = t.id
+      WHERE t.id = $1
+    `,
+    [tenantId]
+  );
+  return result[0] || null;
+}
+
+function limitReached(limitValue, currentCount) {
+  const limit = Number(limitValue || 0);
+  if (!limit || limit <= 0) {
+    return false;
+  }
+  return currentCount >= limit;
+}
+
 async function auditLog(request, action, targetType, targetId, metadata = {}) {
   try {
     await queryDatabase(
@@ -109,6 +141,17 @@ export const tenantRoutes = async (fastify) => {
     if (!name) {
       return reply.code(400).send({ error: 'name é obrigatório' });
     }
+    const limits = await getTenantLimits(request.user.tenant_id);
+    if (limits?.organization_total) {
+      const countResult = await queryDatabase(
+        `SELECT COUNT(*)::int AS total FROM organizations WHERE tenant_id = $1`,
+        [request.user.tenant_id]
+      );
+      const total = countResult[0]?.total || 0;
+      if (limitReached(limits.organization_total, total)) {
+        return reply.code(403).send({ error: 'Limite de organizations do plano atingido' });
+      }
+    }
     const result = await queryDatabase(
       `
         INSERT INTO organizations (tenant_id, name, created_at, updated_at)
@@ -159,6 +202,22 @@ export const tenantRoutes = async (fastify) => {
     const { organization_id, name } = request.body || {};
     if (!organization_id || !name) {
       return reply.code(400).send({ error: 'organization_id e name são obrigatórios' });
+    }
+    const limits = await getTenantLimits(request.user.tenant_id);
+    if (limits?.workspace_total) {
+      const countResult = await queryDatabase(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM workspaces w
+          INNER JOIN organizations o ON w.organization_id = o.id
+          WHERE o.tenant_id = $1
+        `,
+        [request.user.tenant_id]
+      );
+      const total = countResult[0]?.total || 0;
+      if (limitReached(limits.workspace_total, total)) {
+        return reply.code(403).send({ error: 'Limite de workspaces do plano atingido' });
+      }
     }
     const org = await queryDatabase(
       `SELECT id FROM organizations WHERE id = $1 AND tenant_id = $2`,
@@ -358,6 +417,22 @@ export const tenantRoutes = async (fastify) => {
       return reply.code(400).send({ error: 'username e password são obrigatórios' });
     }
 
+    const limits = await getTenantLimits(request.user.tenant_id);
+    if (limits?.users_total) {
+      const countResult = await queryDatabase(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM users
+          WHERE tenant_id = $1 AND status <> 'inactive'
+        `,
+        [request.user.tenant_id]
+      );
+      const total = countResult[0]?.total || 0;
+      if (limitReached(limits.users_total, total)) {
+        return reply.code(403).send({ error: 'Limite de usuários do plano atingido' });
+      }
+    }
+
     const orgIds = normalizeScopeArray(organization_id);
     const wsIds = normalizeScopeArray(workspace_id);
     const scopeCheck = await validateOrgWorkspace(request.user.tenant_id, orgIds, wsIds);
@@ -385,6 +460,78 @@ export const tenantRoutes = async (fastify) => {
     );
     await auditLog(request, 'create', 'user', result[0]?.id, { username, role, status });
     return reply.code(201).send({ id: result[0]?.id });
+  });
+
+  // Dashboard: limites efetivos do tenant (plano + overrides)
+  fastify.get('/limits', async (request, reply) => {
+    const limits = await getTenantLimits(request.user.tenant_id);
+    if (!limits) {
+      return reply.code(404).send({ error: 'Tenant não encontrado' });
+    }
+    return reply.send(limits);
+  });
+
+  // Dashboard: uso diário (tenant ou por org/workspace)
+  fastify.get('/usage/daily', async (request, reply) => {
+    const { days = 30, organization_id = 0, workspace_id = 0 } = request.query || {};
+    const parsedDays = Math.min(Math.max(parseInt(days, 10) || 30, 1), 365);
+    const orgId = parseInt(organization_id, 10) || 0;
+    const wsId = parseInt(workspace_id, 10) || 0;
+
+    if (orgId === 0 && wsId === 0) {
+      const result = await queryDatabase(
+        `
+          SELECT day, items_count, sensors_count, bytes_ingested
+          FROM tenant_usage_daily
+          WHERE tenant_id = $1
+            AND day >= CURRENT_DATE - ($2::int * INTERVAL '1 day')
+          ORDER BY day ASC
+        `,
+        [request.user.tenant_id, parsedDays]
+      );
+      return reply.send(result);
+    }
+
+    const result = await queryDatabase(
+      `
+        SELECT
+          day,
+          SUM(items_count) AS items_count,
+          SUM(sensors_count) AS sensors_count,
+          SUM(bytes_ingested) AS bytes_ingested
+        FROM tenant_usage_daily_scoped
+        WHERE tenant_id = $1
+          AND ($2::int = 0 OR organization_id = $2)
+          AND ($3::int = 0 OR workspace_id = $3)
+          AND day >= CURRENT_DATE - ($4::int * INTERVAL '1 day')
+        GROUP BY day
+        ORDER BY day ASC
+      `,
+      [request.user.tenant_id, orgId, wsId, parsedDays]
+    );
+    return reply.send(result);
+  });
+
+  // Dashboard: alertas recentes
+  fastify.get('/alerts/history', async (request, reply) => {
+    const { limit = 50, organization_id = 0, workspace_id = 0 } = request.query || {};
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 500);
+    const orgId = parseInt(organization_id, 10) || 0;
+    const wsId = parseInt(workspace_id, 10) || 0;
+
+    const result = await queryDatabase(
+      `
+        SELECT id, tenant_id, organization_id, workspace_id, alert_type, day, message, metadata, created_at, resolved_at
+        FROM tenant_alerts
+        WHERE tenant_id = $1
+          AND ($2::int = 0 OR organization_id = $2)
+          AND ($3::int = 0 OR workspace_id = $3)
+        ORDER BY created_at DESC
+        LIMIT $4
+      `,
+      [request.user.tenant_id, orgId, wsId, parsedLimit]
+    );
+    return reply.send(result);
   });
 
   fastify.get('/users', async (request, reply) => {
