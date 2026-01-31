@@ -21,7 +21,7 @@ function isValidDeviceScope(user) {
   if (Number(user.tenant_id) === 0) return false;
   if (!Array.isArray(user.organization_id) || user.organization_id.length !== 1) return false;
   if (user.organization_id.includes(0)) return false;
-  if (!Array.isArray(user.workspace_id) || user.workspace_id.length < 1) return false;
+  if (!Array.isArray(user.workspace_id) || user.workspace_id.length !== 1) return false;
   if (user.workspace_id.includes(0)) return false;
   return true;
 }
@@ -108,6 +108,13 @@ export const authRoutes = async (fastify) => {
       });
     }
     
+    if (user.user_type !== UserType.DEVICE) {
+      return reply.code(401).send({
+        error: 'INVALID_CREDENTIALS',
+        message: 'Credenciais inválidas',
+      });
+    }
+
     if (!isValidDeviceScope(user)) {
       return reply.code(403).send({
         error: 'INVALID_SCOPE',
@@ -194,14 +201,28 @@ export const authRoutes = async (fastify) => {
       });
     }
     
-    // Validar credenciais (apenas tipo device)
-    const user = await validateUserCredentials(
-      username,
-      password,
-      UserType.DEVICE,
-      ipAddress,
-      tenantId
-    );
+    // Buscar usuário por username (sem filtrar tipo)
+    const query = `
+      SELECT 
+        id,
+        username,
+        email,
+        hashed_password,
+        tenant_id,
+        organization_id,
+        workspace_id,
+        role,
+        user_type,
+        status,
+        failed_login_attempts,
+        locked_until
+      FROM users
+      WHERE username = $1
+      ${tenantId ? 'AND tenant_id = $2' : ''}
+    `;
+    const params = tenantId ? [username, tenantId] : [username];
+    const result = await queryDatabase(query, params);
+    const user = result?.[0];
     
     if (!user) {
       return reply.code(401).send({ 
@@ -209,13 +230,75 @@ export const authRoutes = async (fastify) => {
         message: `Credenciais inválidas. Após ${maxAttempts} tentativas seguidas, você ficará bloqueado por ${blockMinutes} minutos.` 
       });
     }
+
+    if (user.user_type !== UserType.DEVICE) {
+      return reply.code(403).send({
+        error: 'INVALID_USER_TYPE',
+        message: 'Usuário deve ser do tipo device para este login',
+      });
+    }
     
     // Verificar se retornou erro de status
-    if (user.error) {
-      const statusCode = user.error === 'BLOCKED' || user.error === 'LOCKED' ? 403 : 401;
-      return reply.code(statusCode).send({
-        error: user.error,
-        message: user.message,
+    if (user.status === 'blocked') {
+      return reply.code(403).send({
+        error: 'BLOCKED',
+        message: 'Usuário bloqueado. Contate o administrador.',
+      });
+    }
+    if (user.status === 'inactive') {
+      return reply.code(401).send({
+        error: 'INACTIVE',
+        message: 'Usuário inativo. Contate o administrador.',
+      });
+    }
+    if (user.locked_until) {
+      const lockedUntil = new Date(user.locked_until);
+      if (lockedUntil > new Date()) {
+        return reply.code(403).send({
+          error: 'LOCKED',
+          message: `Usuário bloqueado temporariamente até ${lockedUntil.toISOString()}`,
+        });
+      }
+    }
+
+    const passwordValid = await bcrypt.compare(password, user.hashed_password);
+    if (!passwordValid) {
+      await queryDatabase(
+        `
+          UPDATE users
+          SET 
+            failed_login_attempts = failed_login_attempts + 1,
+            locked_until = CASE
+              WHEN failed_login_attempts + 1 >= $2 THEN NOW() + ($3::text || ' minutes')::interval
+              ELSE locked_until
+            END
+          WHERE id = $1
+        `,
+        [user.id, maxAttempts, blockMinutes]
+      );
+      return reply.code(401).send({
+        error: 'INVALID_CREDENTIALS',
+        message: `Credenciais inválidas. Após ${maxAttempts} tentativas seguidas, você ficará bloqueado por ${blockMinutes} minutos.`,
+      });
+    }
+
+    await queryDatabase(
+      `
+        UPDATE users
+        SET 
+          last_login_at = NOW(),
+          last_login_ip = $1,
+          failed_login_attempts = 0,
+          locked_until = NULL
+        WHERE id = $2
+      `,
+      [ipAddress, user.id]
+    );
+
+    if (!isValidDeviceScope(user)) {
+      return reply.code(403).send({
+        error: 'INVALID_SCOPE',
+        message: 'Usuário device deve ter tenant_id, 1 organization_id e 1 workspace_id válidos',
       });
     }
     
@@ -394,7 +477,7 @@ export const authRoutes = async (fastify) => {
       if (request.user.user_type === UserType.DEVICE && !isValidDeviceScope(request.user)) {
         return reply.code(403).send({
           error: 'INVALID_SCOPE',
-          message: 'Usuário device deve ter 1 organization_id e 1+ workspace_id válidos',
+          message: 'Usuário device deve ter 1 organization_id e 1 workspace_id válidos',
         });
       }
       
