@@ -58,6 +58,12 @@ class Settings(BaseSettings):
 
     # Multi-tenant (Fase 0 - opcional)
     MULTI_TENANT_ENABLED: bool = Field(default=False, description="Ativa contexto multi-tenant")
+
+    # Observabilidade / Billing
+    BILLING_USAGE_ENABLED: bool = Field(
+        default=False,
+        description="Registra uso diário por tenant (billing-ready)"
+    )
     
     class Config:
         env_file = ".env"

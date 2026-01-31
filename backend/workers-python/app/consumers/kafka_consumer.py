@@ -131,11 +131,15 @@ class TelemetryKafkaConsumer:
                         tenant_id = metadata.get('tenantId') or message_data.get('tenant_id')
                         organization_id = metadata.get('organizationId') or message_data.get('organization_id')
                         workspace_id = metadata.get('workspaceId') or message_data.get('workspace_id')
+                        items_count = metadata.get('itemsCount') or 0
+                        sensors_count = metadata.get('totalSensors') or 0
+                        bytes_ingested = metadata.get('fileSize') or message_data.get('file_size') or 0
                         
                         logger.info(
                             "Processando Claim Check",
                             claim_check=claim_check,
                             user_id=user_id,
+                            tenant_id=tenant_id,
                             file_size=message_data.get('file_size', 0),
                         )
                         
@@ -165,10 +169,20 @@ class TelemetryKafkaConsumer:
                             telemetry_data,
                             db,
                         )
+
+                        if settings.BILLING_USAGE_ENABLED and tenant_id:
+                            await self._record_usage(
+                                db,
+                                int(tenant_id),
+                                int(items_count) if str(items_count).isdigit() else 0,
+                                int(sensors_count) if str(sensors_count).isdigit() else 0,
+                                int(bytes_ingested) if str(bytes_ingested).isdigit() else 0,
+                            )
                         
                         logger.info(
                             "Telemetria processada",
                             user_id=user_id,
+                            tenant_id=tenant_id,
                             processed=result['processed'],
                             inserted=result.get('inserted', 0),
                             errors=len(result.get('errors', [])),
@@ -210,6 +224,46 @@ class TelemetryKafkaConsumer:
                 logger.info("Consumidor Kafka encerrado")
             except Exception as e:
                 logger.error(f"Erro ao fechar consumidor: {e}")
+
+    async def _record_usage(
+        self,
+        db: AsyncSessionLocal,
+        tenant_id: int,
+        items_count: int,
+        sensors_count: int,
+        bytes_ingested: int,
+    ) -> None:
+        """Registra uso diário por tenant (billing-ready)."""
+        from sqlalchemy import text
+
+        if items_count == 0 and sensors_count == 0 and bytes_ingested == 0:
+            return
+
+        await db.execute(
+            text("""
+                INSERT INTO tenant_usage_daily (
+                    tenant_id,
+                    day,
+                    items_count,
+                    sensors_count,
+                    bytes_ingested
+                )
+                VALUES (:tenant_id, CURRENT_DATE, :items, :sensors, :bytes)
+                ON CONFLICT (tenant_id, day) DO UPDATE
+                SET
+                    items_count = tenant_usage_daily.items_count + EXCLUDED.items_count,
+                    sensors_count = tenant_usage_daily.sensors_count + EXCLUDED.sensors_count,
+                    bytes_ingested = tenant_usage_daily.bytes_ingested + EXCLUDED.bytes_ingested,
+                    updated_at = NOW();
+            """),
+            {
+                "tenant_id": tenant_id,
+                "items": items_count,
+                "sensors": sensors_count,
+                "bytes": bytes_ingested,
+            },
+        )
+        await db.commit()
     
     def stop(self):
         """Para o consumidor graciosamente."""

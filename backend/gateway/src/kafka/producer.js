@@ -114,6 +114,8 @@ export async function sendTelemetryToKafka(claimCheck, metadata = {}) {
               workspaceId: metadata.workspaceId,
               requestId: metadata.requestId,
               itemsCount: metadata.itemsCount || 0,
+              totalSensors: metadata.totalSensors || 0,
+              fileSize: metadata.fileSize || claimCheck.file_size || 0,
             },
           }),
           headers: {
@@ -126,6 +128,7 @@ export async function sendTelemetryToKafka(claimCheck, metadata = {}) {
             'request-id': metadata.requestId || '',
             'items-count': (metadata.itemsCount || 0).toString(),
             'file-size': (claimCheck.file_size || 0).toString(),
+            'sensors-count': (metadata.totalSensors || 0).toString(),
           },
         },
       ],

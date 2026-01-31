@@ -105,6 +105,7 @@ export const telemetryRoutes = async (fastify) => {
     const tenantId = request.user.tenant_id || request.tenantContext?.tenantId;
     const organizationId = request.user.organization_id || request.tenantContext?.organizationId;
     const workspaceId = request.user.workspace_id || request.tenantContext?.workspaceId;
+    const totalSensors = data.reduce((sum, item) => sum + (item.sensor?.length || 0), 0);
     
     // Validação básica
     if (!Array.isArray(data) || data.length === 0) {
@@ -156,6 +157,8 @@ export const telemetryRoutes = async (fastify) => {
         workspaceId,
         requestId,
         itemsCount: data.length,
+        totalSensors,
+        fileSize: claimCheck.file_size,
         timestamp: new Date().toISOString(),
       });
       
@@ -163,7 +166,10 @@ export const telemetryRoutes = async (fastify) => {
         userId,
         requestId,
         itemsCount: data.length,
-        totalSensors: data.reduce((sum, item) => sum + (item.sensor?.length || 0), 0),
+        totalSensors,
+        tenantId,
+        organizationId,
+        workspaceId,
         claimCheck: claimCheck.claim_check,
         fileSize: claimCheck.file_size,
       });
@@ -181,6 +187,9 @@ export const telemetryRoutes = async (fastify) => {
         stack: error.stack,
         userId,
         requestId,
+        tenantId,
+        organizationId,
+        workspaceId,
       });
       
       return reply.code(500).send({
