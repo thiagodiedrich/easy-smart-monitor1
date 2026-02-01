@@ -16,6 +16,48 @@ import bcrypt from 'bcrypt';
 const maxAttempts = parseInt(process.env.LOGIN_MAX_ATTEMPTS || '5', 10);
 const blockMinutes = parseInt(process.env.LOGIN_BLOCK_MINUTES || '30', 10);
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    error: {
+      type: 'string',
+      enum: [
+        'INVALID_CREDENTIALS',
+        'BLOCKED',
+        'INACTIVE',
+        'LOCKED',
+        'INVALID_TOKEN',
+        'INVALID_TOKEN_TYPE',
+        'MISSING_TOKEN',
+        'INVALID_USER_TYPE',
+        'INVALID_SCOPE',
+        'UNAUTHORIZED',
+      ],
+    },
+    message: { type: 'string' },
+  },
+};
+
+function normalizeScopeArrayValue(value) {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    const flat = value.flat(Infinity)
+      .map((item) => parseInt(item, 10))
+      .filter((item) => !Number.isNaN(item));
+    if (flat.length === 0) {
+      return [];
+    }
+    if (flat.includes(0)) {
+      return [0];
+    }
+    return flat;
+  }
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? value : parsed;
+}
+
 function isValidDeviceScope(user) {
   if (!user) return false;
   if (Number(user.tenant_id) === 0) return false;
@@ -64,9 +106,22 @@ export const authRoutes = async (fastify) => {
         type: 'object',
         required: ['username', 'password'],
         properties: {
-          username: { type: 'string' },
-          password: { type: 'string' },
+          username: { type: 'string', description: 'Ex: admin@admin.com' },
+          password: { type: 'string', description: 'Ex: admin1234..' },
         },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            access_token: { type: 'string', description: 'JWT de acesso' },
+            refresh_token: { type: 'string', description: 'JWT de refresh' },
+            token_type: { type: 'string', description: 'bearer' },
+            expires_in: { type: 'number', description: 'Segundos até expirar' },
+          },
+        },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -121,13 +176,15 @@ export const authRoutes = async (fastify) => {
     }
     
     // Gerar tokens
+    const normalizedOrganizationId = normalizeScopeArrayValue(user.organization_id);
+    const normalizedWorkspaceId = normalizeScopeArrayValue(user.workspace_id);
     const accessToken = fastify.jwt.sign(
       { 
         sub: user.username,
         user_id: user.id,
         tenant_id: user.tenant_id,
-        organization_id: user.organization_id,
-        workspace_id: user.workspace_id,
+        organization_id: normalizedOrganizationId,
+        workspace_id: normalizedWorkspaceId,
         role: user.role,
         user_type: UserType.FRONTEND,
         type: 'access' 
@@ -140,8 +197,8 @@ export const authRoutes = async (fastify) => {
         sub: user.username,
         user_id: user.id,
         tenant_id: user.tenant_id,
-        organization_id: user.organization_id,
-        workspace_id: user.workspace_id,
+        organization_id: normalizedOrganizationId,
+        workspace_id: normalizedWorkspaceId,
         role: user.role,
         user_type: UserType.FRONTEND,
         type: 'refresh' 
@@ -179,10 +236,23 @@ export const authRoutes = async (fastify) => {
         type: 'object',
         required: ['username', 'password'],
         properties: {
-          username: { type: 'string' },
-          password: { type: 'string' },
-          device_id: { type: 'string' }, // Opcional: ID do dispositivo
+          username: { type: 'string', description: 'Ex: device-01' },
+          password: { type: 'string', description: 'Ex: device123' },
+          device_id: { type: 'string', description: 'Ex: iot-abc-001' }, // Opcional: ID do dispositivo
         },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            access_token: { type: 'string', description: 'JWT de acesso' },
+            refresh_token: { type: 'string', description: 'JWT de refresh' },
+            token_type: { type: 'string', description: 'bearer' },
+            expires_in: { type: 'number', description: 'Segundos até expirar' },
+          },
+        },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -301,13 +371,15 @@ export const authRoutes = async (fastify) => {
     }
     
     // Gerar tokens
+    const normalizedOrganizationId = normalizeScopeArrayValue(user.organization_id);
+    const normalizedWorkspaceId = normalizeScopeArrayValue(user.workspace_id);
     const accessToken = fastify.jwt.sign(
       { 
         sub: user.username,
         user_id: user.id,
         tenant_id: user.tenant_id,
-        organization_id: user.organization_id,
-        workspace_id: user.workspace_id,
+        organization_id: normalizedOrganizationId,
+        workspace_id: normalizedWorkspaceId,
         role: user.role,
         user_type: UserType.DEVICE,
         device_id: device_id || 'unknown',
@@ -321,8 +393,8 @@ export const authRoutes = async (fastify) => {
         sub: user.username,
         user_id: user.id,
         tenant_id: user.tenant_id,
-        organization_id: user.organization_id,
-        workspace_id: user.workspace_id,
+        organization_id: normalizedOrganizationId,
+        workspace_id: normalizedWorkspaceId,
         role: user.role,
         user_type: UserType.DEVICE,
         device_id: device_id || 'unknown',
@@ -358,6 +430,17 @@ export const authRoutes = async (fastify) => {
     schema: {
       description: 'Renova access token',
       tags: ['Autenticação'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            access_token: { type: 'string', description: 'JWT de acesso' },
+            token_type: { type: 'string', description: 'bearer' },
+            expires_in: { type: 'number', description: 'Segundos até expirar' },
+          },
+        },
+        401: errorResponseSchema,
+      },
     },
   }, async (request, reply) => {
     try {
@@ -429,8 +512,8 @@ export const authRoutes = async (fastify) => {
           sub: decoded.sub,
           user_id: decoded.user_id,
           tenant_id: user.tenant_id,
-          organization_id: user.organization_id,
-          workspace_id: user.workspace_id,
+          organization_id: normalizeScopeArrayValue(user.organization_id),
+          workspace_id: normalizeScopeArrayValue(user.workspace_id),
           role: user.role,
           user_type: decoded.user_type,
           device_id: decoded.device_id,
@@ -467,6 +550,38 @@ export const authRoutes = async (fastify) => {
     schema: {
       description: 'Informações do usuário autenticado',
       tags: ['Autenticação'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            username: { type: 'string', description: 'Ex: admin@admin.com' },
+            user_id: { type: 'number', description: 'Ex: 1' },
+            tenant_id: { type: 'number', description: 'Ex: 0' },
+            organization_id: {
+              oneOf: [
+                { type: 'number', description: 'Ex: 1' },
+                { type: 'array', items: { type: 'number' }, description: 'Ex: [1,2]' },
+              ],
+            },
+            workspace_id: {
+              oneOf: [
+                { type: 'number', description: 'Ex: 10' },
+                { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11]' },
+              ],
+            },
+            role: {
+              oneOf: [
+                { type: 'object', description: 'Ex: {"role":"admin"}' },
+                { type: 'array', items: { type: 'number' }, description: 'Ex: [0]' },
+              ],
+            },
+            user_type: { type: 'string', description: 'frontend | device' },
+            device_id: { type: 'string', description: 'Ex: iot-abc-001' },
+          },
+        },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+      },
     },
   }, async (request, reply) => {
     try {
@@ -483,8 +598,8 @@ export const authRoutes = async (fastify) => {
         username: request.user.sub,
         user_id: request.user.user_id,
         tenant_id: request.user.tenant_id,
-        organization_id: request.user.organization_id,
-        workspace_id: request.user.workspace_id,
+        organization_id: normalizeScopeArrayValue(request.user.organization_id),
+        workspace_id: normalizeScopeArrayValue(request.user.workspace_id),
         role: request.user.role,
         user_type: request.user.user_type,
         device_id: request.user.device_id,

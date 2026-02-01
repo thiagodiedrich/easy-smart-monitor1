@@ -4,13 +4,37 @@
 import { kafkaProducer } from '../kafka/producer.js';
 import { logger } from '../utils/logger.js';
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    message: { type: 'string' },
+  },
+};
+
 export const healthRoutes = async (fastify) => {
   /**
    * GET /api/v1/health
    * 
    * Health check básico.
    */
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', {
+    schema: {
+      description: 'Health check básico',
+      tags: ['Health'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            service: { type: 'string' },
+            timestamp: { type: 'string' },
+          },
+        },
+        500: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     return {
       status: 'healthy',
       service: 'gateway',
@@ -23,7 +47,24 @@ export const healthRoutes = async (fastify) => {
    * 
    * Health check detalhado com verificação de dependências.
    */
-  fastify.get('/detailed', async (request, reply) => {
+  fastify.get('/detailed', {
+    schema: {
+      description: 'Health check detalhado',
+      tags: ['Health'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            checks: { type: 'object', additionalProperties: true },
+            timestamp: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+        500: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     const checks = {
       gateway: { status: 'healthy', message: 'Gateway operacional' },
       kafka: { status: 'unknown', message: 'Verificando...' },

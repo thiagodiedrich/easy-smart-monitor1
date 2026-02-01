@@ -62,6 +62,24 @@ function hasSuperRole(role) {
   return false;
 }
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    error: {
+      type: 'string',
+      enum: [
+        'UNAUTHORIZED',
+        'FORBIDDEN',
+        'NOT_FOUND',
+        'VALIDATION_ERROR',
+        'INVALID_SCOPE',
+        'LIMIT_REACHED',
+      ],
+    },
+    message: { type: 'string' },
+  },
+};
+
 function normalizeScopeArray(value) {
   if (value === undefined || value === null) {
     return [0];
@@ -208,10 +226,11 @@ export const tenantRoutes = async (fastify) => {
         type: 'object',
         required: ['name'],
         properties: {
-          name: { type: 'string' },
-          document: { type: 'string' },
-          phone: { type: 'string' },
-          email: { type: 'string' },
+          name: { type: 'string', description: 'Ex: Matriz' },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'], description: 'Ex: active' },
+          document: { type: 'string', description: 'Ex: 12.345.678/0001-90' },
+          phone: { type: 'string', description: 'Ex: +55 11 99999-0000' },
+          email: { type: 'string', description: 'Ex: contato@empresa.com' },
         },
       },
       response: {
@@ -221,12 +240,18 @@ export const tenantRoutes = async (fastify) => {
             id: { type: 'number' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
-    const { name, document, phone, email } = request.body || {};
+    const { name, document, phone, email, status = 'active' } = request.body || {};
     if (!name) {
       return reply.code(400).send({ error: 'name é obrigatório' });
+    }
+    if (status && !['active', 'inactive', 'blocked'].includes(status)) {
+      return reply.code(400).send({ error: 'status inválido. Use: active, inactive, blocked' });
     }
     const limits = await getTenantLimits(request.user.tenant_id);
     if (limits?.organization_total) {
@@ -241,11 +266,11 @@ export const tenantRoutes = async (fastify) => {
     }
     const result = await queryDatabase(
       `
-        INSERT INTO organizations (tenant_id, name, document, phone, email, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO organizations (tenant_id, name, status, document, phone, email, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
         RETURNING id
       `,
-      [request.user.tenant_id, name, document || null, phone || null, email || null]
+      [request.user.tenant_id, name, status, document || null, phone || null, email || null]
     );
     await auditLog(request, 'create', 'organization', result[0]?.id, { name });
     return reply.code(201).send({ id: result[0]?.id });
@@ -258,8 +283,23 @@ export const tenantRoutes = async (fastify) => {
       response: {
         200: {
           type: 'array',
-          items: { type: 'object' },
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID da organization' },
+              tenant_id: { type: 'number', description: 'ID do tenant' },
+              name: { type: 'string', description: 'Nome da organization' },
+              status: { type: 'string', description: 'Status da organization' },
+              document: { type: 'string', description: 'Documento da organization' },
+              phone: { type: 'string', description: 'Telefone da organization' },
+              email: { type: 'string', description: 'E-mail da organization' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
         },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -277,10 +317,11 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          name: { type: 'string' },
-          document: { type: 'string' },
-          phone: { type: 'string' },
-          email: { type: 'string' },
+          name: { type: 'string', description: 'Ex: Filial Centro' },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'], description: 'Ex: active' },
+          document: { type: 'string', description: 'Ex: 12.345.678/0001-90' },
+          phone: { type: 'string', description: 'Ex: +55 11 99999-0000' },
+          email: { type: 'string', description: 'Ex: contato@empresa.com' },
         },
       },
       response: {
@@ -290,25 +331,32 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
     const { id } = request.params;
-    const { name, document, phone, email } = request.body || {};
+    const { name, document, phone, email, status } = request.body || {};
+    if (status && !['active', 'inactive', 'blocked'].includes(status)) {
+      return reply.code(400).send({ error: 'status inválido. Use: active, inactive, blocked' });
+    }
     await queryDatabase(
       `
         UPDATE organizations
         SET
           name = COALESCE($1, name),
-          document = COALESCE($2, document),
-          phone = COALESCE($3, phone),
-          email = COALESCE($4, email),
+          status = COALESCE($2, status),
+          document = COALESCE($3, document),
+          phone = COALESCE($4, phone),
+          email = COALESCE($5, email),
           updated_at = NOW()
-        WHERE id = $5 AND tenant_id = $6
+        WHERE id = $6 AND tenant_id = $7
       `,
-      [name || null, document || null, phone || null, email || null, id, request.user.tenant_id]
+      [name || null, status || null, document || null, phone || null, email || null, id, request.user.tenant_id]
     );
-    await auditLog(request, 'update', 'organization', id, { name, document, phone, email });
+    await auditLog(request, 'update', 'organization', id, { name, status, document, phone, email });
     return reply.send({ status: 'ok' });
   });
 
@@ -322,6 +370,8 @@ export const tenantRoutes = async (fastify) => {
       },
       response: {
         200: { type: 'object', properties: { status: { type: 'string' } } },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -343,8 +393,8 @@ export const tenantRoutes = async (fastify) => {
         type: 'object',
         required: ['organization_id', 'name'],
         properties: {
-          organization_id: { type: 'number' },
-          name: { type: 'string' },
+          organization_id: { type: 'number', description: 'Ex: 1' },
+          name: { type: 'string', description: 'Ex: Workspace A' },
         },
       },
       response: {
@@ -354,6 +404,10 @@ export const tenantRoutes = async (fastify) => {
             id: { type: 'number' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        404: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -403,8 +457,19 @@ export const tenantRoutes = async (fastify) => {
       response: {
         200: {
           type: 'array',
-          items: { type: 'object' },
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID do workspace' },
+              organization_id: { type: 'number', description: 'ID da organization' },
+              name: { type: 'string', description: 'Nome do workspace' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
         },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -428,7 +493,7 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          name: { type: 'string' },
+          name: { type: 'string', description: 'Ex: Workspace B' },
         },
       },
       response: {
@@ -438,6 +503,9 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -467,6 +535,8 @@ export const tenantRoutes = async (fastify) => {
       },
       response: {
         200: { type: 'object', properties: { status: { type: 'string' } } },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -492,10 +562,10 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          organization_id: { type: 'number' },
-          workspace_ids: { type: 'array', items: { type: 'number' } },
-          threshold_percent: { type: 'number' },
-          enabled: { type: 'boolean' },
+          organization_id: { type: 'number', description: 'Ex: 1 (0 = todas)' },
+          workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11] (0 = todas)' },
+          threshold_percent: { type: 'number', description: 'Ex: 80' },
+          enabled: { type: 'boolean', description: 'Ex: true' },
         },
       },
       response: {
@@ -505,6 +575,9 @@ export const tenantRoutes = async (fastify) => {
             id: { type: 'number' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -528,8 +601,22 @@ export const tenantRoutes = async (fastify) => {
       response: {
         200: {
           type: 'array',
-          items: { type: 'object' },
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID da regra' },
+              tenant_id: { type: 'number', description: 'ID do tenant' },
+              organization_id: { type: 'number', description: 'ID da organization (0 = todas)' },
+              workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Workspaces (0 = todas)' },
+              threshold_percent: { type: 'number', description: 'Percentual de alerta' },
+              enabled: { type: 'boolean', description: 'Regra habilitada' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
         },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -547,10 +634,10 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          organization_id: { type: 'number' },
-          workspace_ids: { type: 'array', items: { type: 'number' } },
-          threshold_percent: { type: 'number' },
-          enabled: { type: 'boolean' },
+          organization_id: { type: 'number', description: 'Ex: 1 (0 = todas)' },
+          workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11] (0 = todas)' },
+          threshold_percent: { type: 'number', description: 'Ex: 90' },
+          enabled: { type: 'boolean', description: 'Ex: true' },
         },
       },
       response: {
@@ -560,6 +647,9 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -592,6 +682,8 @@ export const tenantRoutes = async (fastify) => {
       },
       response: {
         200: { type: 'object', properties: { status: { type: 'string' } } },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -612,12 +704,12 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          organization_id: { type: 'number' },
-          workspace_ids: { type: 'array', items: { type: 'number' } },
-          event_types: { type: 'array', items: { type: 'string' } },
-          url: { type: 'string' },
-          secret: { type: 'string' },
-          enabled: { type: 'boolean' },
+          organization_id: { type: 'number', description: 'Ex: 1 (0 = todas)' },
+          workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11] (0 = todas)' },
+          event_types: { type: 'array', items: { type: 'string' }, description: 'Ex: ["quota_80","quota_90"]' },
+          url: { type: 'string', description: 'Ex: https://hook.exemplo.com/alerts' },
+          secret: { type: 'string', description: 'Ex: my-secret' },
+          enabled: { type: 'boolean', description: 'Ex: true' },
         },
       },
       response: {
@@ -627,6 +719,9 @@ export const tenantRoutes = async (fastify) => {
             id: { type: 'number' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -650,8 +745,24 @@ export const tenantRoutes = async (fastify) => {
       response: {
         200: {
           type: 'array',
-          items: { type: 'object' },
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID do webhook' },
+              tenant_id: { type: 'number', description: 'ID do tenant' },
+              organization_id: { type: 'number', description: 'ID da organization (0 = todas)' },
+              workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Workspaces (0 = todas)' },
+              event_types: { type: 'array', items: { type: 'string' }, description: 'Tipos de evento' },
+              url: { type: 'string', description: 'URL do webhook' },
+              secret: { type: 'string', description: 'Segredo HMAC' },
+              enabled: { type: 'boolean', description: 'Webhook habilitado' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
         },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -669,12 +780,12 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          organization_id: { type: 'number' },
-          workspace_ids: { type: 'array', items: { type: 'number' } },
-          event_types: { type: 'array', items: { type: 'string' } },
-          url: { type: 'string' },
-          secret: { type: 'string' },
-          enabled: { type: 'boolean' },
+          organization_id: { type: 'number', description: 'Ex: 1 (0 = todas)' },
+          workspace_ids: { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11] (0 = todas)' },
+          event_types: { type: 'array', items: { type: 'string' }, description: 'Ex: ["quota_80","quota_90"]' },
+          url: { type: 'string', description: 'Ex: https://hook.exemplo.com/alerts' },
+          secret: { type: 'string', description: 'Ex: my-secret' },
+          enabled: { type: 'boolean', description: 'Ex: false' },
         },
       },
       response: {
@@ -684,6 +795,9 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -727,6 +841,8 @@ export const tenantRoutes = async (fastify) => {
       },
       response: {
         200: { type: 'object', properties: { status: { type: 'string' } } },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -748,20 +864,20 @@ export const tenantRoutes = async (fastify) => {
         type: 'object',
         required: ['username', 'password'],
         properties: {
-          name: { type: 'string' },
-          username: { type: 'string' },
-          email: { type: 'string' },
-          password: { type: 'string' },
+          name: { type: 'string', description: 'Ex: João Silva' },
+          username: { type: 'string', description: 'Ex: joao@empresa.com' },
+          email: { type: 'string', description: 'Ex: joao@empresa.com' },
+          password: { type: 'string', description: 'Ex: senha@123' },
           role: {
             oneOf: [
-              { type: 'string', enum: ['admin', 'manager', 'viewer'] },
-              { type: 'array', items: { type: 'number' } },
-              { type: 'object' },
+              { type: 'string', enum: ['admin', 'manager', 'viewer'], description: 'Ex: admin' },
+              { type: 'array', items: { type: 'number' }, description: 'Ex: [0]' },
+              { type: 'object', description: 'Ex: {"role":"viewer"}' },
             ],
           },
-          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
-          organization_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
-          workspace_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'], description: 'Ex: active' },
+          organization_id: { oneOf: [{ type: 'number', description: 'Ex: 1' }, { type: 'array', items: { type: 'number' }, description: 'Ex: [1,2]' }] },
+          workspace_id: { oneOf: [{ type: 'number', description: 'Ex: 10' }, { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11]' }] },
         },
       },
       response: {
@@ -771,6 +887,9 @@ export const tenantRoutes = async (fastify) => {
             id: { type: 'number' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -917,8 +1036,24 @@ export const tenantRoutes = async (fastify) => {
       response: {
         200: {
           type: 'array',
-          items: { type: 'object' },
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID do usuário' },
+              username: { type: 'string', description: 'Username' },
+              email: { type: 'string', description: 'E-mail' },
+              role: { oneOf: [{ type: 'object' }, { type: 'array', items: { type: 'number' } }], description: 'Role/permissions' },
+              status: { type: 'string', description: 'Status do usuário' },
+              user_type: { type: 'string', description: 'Tipo de usuário' },
+              organization_id: { type: 'array', items: { type: 'number' }, description: 'Organizations' },
+              workspace_id: { type: 'array', items: { type: 'number' }, description: 'Workspaces' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
         },
+        401: errorResponseSchema,
+        403: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -941,17 +1076,17 @@ export const tenantRoutes = async (fastify) => {
       body: {
         type: 'object',
         properties: {
-          email: { type: 'string' },
+          email: { type: 'string', description: 'Ex: joao@empresa.com' },
           role: {
             oneOf: [
-              { type: 'string', enum: ['admin', 'manager', 'viewer'] },
-              { type: 'array', items: { type: 'number' } },
-              { type: 'object' },
+              { type: 'string', enum: ['admin', 'manager', 'viewer'], description: 'Ex: manager' },
+              { type: 'array', items: { type: 'number' }, description: 'Ex: [0]' },
+              { type: 'object', description: 'Ex: {"role":"viewer"}' },
             ],
           },
-          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
-          organization_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
-          workspace_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'], description: 'Ex: active' },
+          organization_id: { oneOf: [{ type: 'number', description: 'Ex: 1' }, { type: 'array', items: { type: 'number' }, description: 'Ex: [1,2]' }] },
+          workspace_id: { oneOf: [{ type: 'number', description: 'Ex: 10' }, { type: 'array', items: { type: 'number' }, description: 'Ex: [10,11]' }] },
         },
       },
       response: {
@@ -961,6 +1096,10 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        404: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -1027,7 +1166,7 @@ export const tenantRoutes = async (fastify) => {
         type: 'object',
         required: ['password'],
         properties: {
-          password: { type: 'string' },
+          password: { type: 'string', description: 'Ex: novaSenha@123' },
         },
       },
       response: {
@@ -1037,6 +1176,10 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        404: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -1062,7 +1205,7 @@ export const tenantRoutes = async (fastify) => {
         type: 'object',
         required: ['status'],
         properties: {
-          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'], description: 'Ex: inactive' },
         },
       },
       response: {
@@ -1072,6 +1215,10 @@ export const tenantRoutes = async (fastify) => {
             status: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        404: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
@@ -1118,6 +1265,10 @@ export const tenantRoutes = async (fastify) => {
       },
       response: {
         200: { type: 'object', properties: { status: { type: 'string' } } },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        404: errorResponseSchema,
       },
     },
   }, async (request, reply) => {

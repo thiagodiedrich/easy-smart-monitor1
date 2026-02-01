@@ -10,6 +10,23 @@ import { logger } from '../utils/logger.js';
 import { queryDatabase } from '../utils/database.js';
 import config from '../config.js';
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    error: {
+      type: 'string',
+      enum: [
+        'UNAUTHORIZED',
+        'FORBIDDEN',
+        'QUOTA_EXCEEDED',
+        'INVALID_SCOPE',
+        'INVALID_PAYLOAD',
+      ],
+    },
+    message: { type: 'string' },
+  },
+};
+
 async function getTenantQuota(tenantId) {
   const result = await queryDatabase(
     `
@@ -112,26 +129,26 @@ export const telemetryRoutes = async (fastify) => {
           type: 'object',
           required: ['equip_uuid'],
           properties: {
-            equip_uuid: { type: 'string' },
-            equip_nome: { type: 'string' },
-            equip_local: { type: 'string' },
-            equip_status: { type: 'string' },
-            equip_intervalo_coleta: { type: 'number' },
-            equip_sirene_ativa: { type: 'string' },
-            equip_sirete_tempo: { type: 'number' },
+            equip_uuid: { type: 'string', description: 'Ex: 550e8400-e29b-41d4-a716-446655440000' },
+            equip_nome: { type: 'string', description: 'Ex: Gerador A' },
+            equip_local: { type: 'string', description: 'Ex: Sala 1' },
+            equip_status: { type: 'string', description: 'Ex: ativo' },
+            equip_intervalo_coleta: { type: 'number', description: 'Ex: 60' },
+            equip_sirene_ativa: { type: 'string', description: 'Ex: true' },
+            equip_sirete_tempo: { type: 'number', description: 'Ex: 10' },
             sensor: {
               type: 'array',
               items: { 
                 type: 'object',
                 properties: {
-                  sensor_uuid: { type: 'string' },
-                  sensor_nome: { type: 'string' },
-                  sensor_tipo: { type: 'string' },
-                  sensor_telemetria: { type: ['string', 'number'] },
-                  sensor_datahora_coleta: { type: 'string' },
-                  valor: { type: ['number', 'null'] },
-                  status: { type: ['string', 'null'] },
-                  timestamp: { type: 'string' },
+                  sensor_uuid: { type: 'string', description: 'Ex: 550e8400-e29b-41d4-a716-446655440001' },
+                  sensor_nome: { type: 'string', description: 'Ex: Temperatura' },
+                  sensor_tipo: { type: 'string', description: 'Ex: temp' },
+                  sensor_telemetria: { type: ['string', 'number'], description: 'Ex: 26.5' },
+                  sensor_datahora_coleta: { type: 'string', description: 'Ex: 2026-02-01T03:00:00Z' },
+                  valor: { type: ['number', 'null'], description: 'Ex: 26.5' },
+                  status: { type: ['string', 'null'], description: 'Ex: active' },
+                  timestamp: { type: 'string', description: 'Ex: 2026-02-01T03:00:00Z' },
                 }
               },
             },
@@ -146,8 +163,14 @@ export const telemetryRoutes = async (fastify) => {
             status: { type: 'string' },
             received: { type: 'number' },
             message: { type: 'string' },
+            claim_check: { type: 'string' },
           },
         },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        429: errorResponseSchema,
+        500: errorResponseSchema,
       },
     },
   }, async (request, reply) => {

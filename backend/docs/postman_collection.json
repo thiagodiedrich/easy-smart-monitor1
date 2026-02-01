@@ -1,0 +1,918 @@
+{
+  "info": {
+    "name": "Easy Smart Monitor Backend",
+    "description": "Colecao de chamadas da API backend com variaveis de teste.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://easyapi.simc.com.br" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "device_access_token", "value": "" },
+    { "key": "tenant_id", "value": "1" },
+    { "key": "organization_id", "value": "1" },
+    { "key": "workspace_id", "value": "1" },
+    { "key": "equipment_uuid", "value": "550e8400-e29b-41d4-a716-446655440000" },
+    { "key": "sensor_uuid", "value": "550e8400-e29b-41d4-a716-446655440001" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Frontend)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@admin.com\",\n  \"password\": \"admin1234..\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('access_token', data.access_token || '');",
+                  "  pm.environment.set('refresh_token', data.refresh_token || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Device)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/device/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "device", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"device-01\",\n  \"password\": \"device123\",\n  \"device_id\": \"iot-abc-001\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('device_access_token', data.access_token || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{refresh_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('access_token', data.access_token || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cliente A\",\n  \"slug\": \"cliente-a\",\n  \"status\": \"active\",\n  \"plan_code\": \"legacy\",\n  \"is_white_label\": false,\n  \"document\": \"12.345.678/0001-90\",\n  \"phone\": \"+55 11 99999-0000\",\n  \"email\": \"admin@cliente.com\",\n  \"password\": \"senha@123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('tenant_id', data.id || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Tenant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "{{tenant_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cliente A (Atualizado)\",\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Tenant Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "{{tenant_id}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/plans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Create Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/plans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "plans"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"legacy\",\n  \"name\": \"Legacy Plan\",\n  \"status\": \"active\",\n  \"items_per_day\": 100000,\n  \"sensors_per_day\": 10000,\n  \"bytes_per_day\": 104857600,\n  \"equipments_total\": 1000,\n  \"sensors_total\": 5000,\n  \"users_total\": 50,\n  \"organization_total\": 10,\n  \"workspace_total\": 20,\n  \"collection_interval\": 60,\n  \"alert_delay_seconds\": 60\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Plan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/plans/legacy",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "plans", "legacy"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"users_total\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Plan Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/plans/legacy/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "plans", "legacy", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Upsert Tenant Limits",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/limits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "{{tenant_id}}", "limits"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items_per_day\": 100000,\n  \"sensors_per_day\": 10000,\n  \"bytes_per_day\": 104857600,\n  \"equipments_total\": 1000,\n  \"sensors_total\": 5000,\n  \"users_total\": 50,\n  \"organization_total\": 10,\n  \"workspace_total\": 20,\n  \"collection_interval\": 60,\n  \"alert_delay_seconds\": 60\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Tenant Limits",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/limits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "{{tenant_id}}", "limits"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"users_total\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Tenant Limits",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/{{tenant_id}}/limits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "{{tenant_id}}", "limits"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tenant",
+      "item": [
+        {
+          "name": "List Organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/organizations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "organizations"]
+            }
+          }
+        },
+        {
+          "name": "Create Organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/organizations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "organizations"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Matriz\",\n  \"status\": \"active\",\n  \"document\": \"12.345.678/0001-90\",\n  \"phone\": \"+55 11 99999-0000\",\n  \"email\": \"contato@empresa.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('organization_id', data.id || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Organization",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/organizations/{{organization_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "organizations", "{{organization_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Matriz (Atualizado)\",\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Organization",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/organizations/{{organization_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "organizations", "{{organization_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Workspaces",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/workspaces",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "workspaces"]
+            }
+          }
+        },
+        {
+          "name": "Create Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/workspaces",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "workspaces"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization_id\": {{organization_id}},\n  \"name\": \"Workspace A\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.environment.set('workspace_id', data.id || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Workspace",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/workspaces/{{workspace_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "workspaces", "{{workspace_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Workspace B\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Workspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/workspaces/{{workspace_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "workspaces", "{{workspace_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users"]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Joao Silva\",\n  \"username\": \"joao@empresa.com\",\n  \"email\": \"joao@empresa.com\",\n  \"password\": \"senha@123\",\n  \"role\": \"viewer\",\n  \"status\": \"active\",\n  \"organization_id\": {{organization_id}},\n  \"workspace_id\": {{workspace_id}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"manager\",\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users/1/password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users", "1", "password"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"novaSenha@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users", "1", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "Create Alert Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "alerts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization_id\": {{organization_id}},\n  \"workspace_ids\": [{{workspace_id}}],\n  \"threshold_percent\": 80,\n  \"enabled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Alert Rule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/alerts/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "alerts", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"threshold_percent\": 90,\n  \"enabled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Alert Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/alerts/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "alerts", "1"]
+            }
+          }
+        },
+        {
+          "name": "List Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "webhooks"]
+            }
+          }
+        },
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "webhooks"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization_id\": {{organization_id}},\n  \"workspace_ids\": [{{workspace_id}}],\n  \"event_types\": [\"quota_80\",\"quota_90\"],\n  \"url\": \"https://hook.exemplo.com/alerts\",\n  \"secret\": \"my-secret\",\n  \"enabled\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Webhook",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/webhooks/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "webhooks", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Webhook",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/webhooks/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "webhooks", "1"]
+            }
+          }
+        },
+        {
+          "name": "Limits",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/limits",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "limits"]
+            }
+          }
+        },
+        {
+          "name": "Usage Daily",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/usage/daily?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "usage", "daily"],
+              "query": [
+                { "key": "days", "value": "30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Alerts History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenant/alerts/history?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenant", "alerts", "history"],
+              "query": [
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemetry",
+      "item": [
+        {
+          "name": "Bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{device_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/telemetry/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "telemetry", "bulk"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"equip_uuid\": \"{{equipment_uuid}}\",\n    \"equip_nome\": \"Gerador A\",\n    \"equip_local\": \"Sala 1\",\n    \"equip_status\": \"active\",\n    \"equip_intervalo_coleta\": 60,\n    \"equip_sirene_ativa\": \"true\",\n    \"equip_sirete_tempo\": 10,\n    \"sensor\": [\n      {\n        \"sensor_uuid\": \"{{sensor_uuid}}\",\n        \"sensor_nome\": \"Temperatura\",\n        \"sensor_tipo\": \"temp\",\n        \"sensor_telemetria\": 26.5,\n        \"sensor_datahora_coleta\": \"2026-02-01T03:00:00Z\",\n        \"valor\": 26.5,\n        \"status\": \"active\",\n        \"timestamp\": \"2026-02-01T03:00:00Z\"\n      }\n    ]\n  }\n]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Equipment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/equipment/{{equipment_uuid}}/history?period=hour",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "equipment", "{{equipment_uuid}}", "history"],
+              "query": [
+                { "key": "period", "value": "hour" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sensor History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/sensor/{{sensor_uuid}}/history?period=hour",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "sensor", "{{sensor_uuid}}", "history"],
+              "query": [
+                { "key": "period", "value": "hour" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Equipment Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/equipment/{{equipment_uuid}}/stats?period=24h",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "equipment", "{{equipment_uuid}}", "stats"],
+              "query": [
+                { "key": "period", "value": "24h" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Home Assistant",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/home-assistant/{{equipment_uuid}}?hours=24",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "home-assistant", "{{equipment_uuid}}"],
+              "query": [
+                { "key": "hours", "value": "24" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            }
+          }
+        },
+        {
+          "name": "Health Detailed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/health/detailed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health", "detailed"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -98,15 +98,15 @@ export const adminRoutes = async (fastify) => {
         type: 'object',
         required: ['name', 'slug', 'email', 'password'],
         properties: {
-          name: { type: 'string' },
-          slug: { type: 'string' },
-          status: { type: 'string', enum: ['active', 'inactive'] },
-          plan_code: { type: 'string' },
-          is_white_label: { type: 'boolean' },
-          document: { type: 'string' },
-          phone: { type: 'string' },
-          email: { type: 'string' },
-          password: { type: 'string' },
+          name: { type: 'string', description: 'Ex: Cliente A' },
+          slug: { type: 'string', description: 'Ex: cliente-a' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: active' },
+          plan_code: { type: 'string', description: 'Ex: legacy' },
+          is_white_label: { type: 'boolean', description: 'Ex: false' },
+          document: { type: 'string', description: 'Ex: 12.345.678/0001-90' },
+          phone: { type: 'string', description: 'Ex: +55 11 99999-0000' },
+          email: { type: 'string', description: 'Ex: admin@cliente.com' },
+          password: { type: 'string', description: 'Ex: senha@123' },
         },
       },
       response: {
@@ -115,6 +115,30 @@ export const adminRoutes = async (fastify) => {
           properties: {
             id: { type: 'number' },
             admin_username: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              enum: ['VALIDATION_ERROR', 'INVALID_PAYLOAD'],
+            },
+            message: { type: 'string' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
           },
         },
       },
@@ -203,12 +227,94 @@ export const adminRoutes = async (fastify) => {
     return reply.code(201).send({ id: tenantId, admin_username: adminUserUsername });
   });
 
-  fastify.get('/tenants', async (_request, reply) => {
+  fastify.get('/tenants', {
+    schema: {
+      description: 'Lista tenants (admin global)',
+      tags: ['Admin'],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'ID do tenant' },
+              name: { type: 'string', description: 'Nome do tenant' },
+              slug: { type: 'string', description: 'Slug do tenant' },
+              status: { type: 'string', description: 'Status do tenant' },
+              plan_code: { type: 'string', description: 'Código do plano' },
+              is_white_label: { type: 'boolean', description: 'White-label habilitado' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (_request, reply) => {
     const result = await queryDatabase(`SELECT * FROM tenants ORDER BY id ASC`);
     return reply.send(result);
   });
 
-  fastify.get('/tenants/:id', async (request, reply) => {
+  fastify.get('/tenants/:id', {
+    schema: {
+      description: 'Obtém tenant por ID (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            name: { type: 'string' },
+            slug: { type: 'string' },
+            status: { type: 'string' },
+            plan_code: { type: 'string' },
+            is_white_label: { type: 'boolean' },
+            created_at: { type: 'string' },
+            updated_at: { type: 'string' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['NOT_FOUND'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const result = await queryDatabase(`SELECT * FROM tenants WHERE id = $1`, [id]);
     if (!result || result.length === 0) {
@@ -217,7 +323,46 @@ export const adminRoutes = async (fastify) => {
     return reply.send(result[0]);
   });
 
-  fastify.put('/tenants/:id', async (request, reply) => {
+  fastify.put('/tenants/:id', {
+    schema: {
+      description: 'Atualiza tenant (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Ex: Cliente A' },
+          slug: { type: 'string', description: 'Ex: cliente-a' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: active' },
+          plan_code: { type: 'string', description: 'Ex: legacy' },
+          is_white_label: { type: 'boolean', description: 'Ex: false' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { name, slug, status, plan_code, is_white_label } = request.body || {};
     await queryDatabase(
@@ -238,7 +383,53 @@ export const adminRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.patch('/tenants/:id/status', async (request, reply) => {
+  fastify.patch('/tenants/:id/status', {
+    schema: {
+      description: 'Atualiza status do tenant (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: inactive' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              enum: ['VALIDATION_ERROR', 'INVALID_PAYLOAD'],
+            },
+            message: { type: 'string' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { status } = request.body || {};
     if (!status) {
@@ -253,7 +444,61 @@ export const adminRoutes = async (fastify) => {
   });
 
   // Plans
-  fastify.post('/plans', async (request, reply) => {
+  fastify.post('/plans', {
+    schema: {
+      description: 'Cria plano (admin global)',
+      tags: ['Admin'],
+      body: {
+        type: 'object',
+        required: ['code', 'name'],
+        properties: {
+          code: { type: 'string', description: 'Ex: legacy' },
+          name: { type: 'string', description: 'Ex: Legacy Plan' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: active' },
+          items_per_day: { type: 'number', description: 'Ex: 100000' },
+          sensors_per_day: { type: 'number', description: 'Ex: 10000' },
+          bytes_per_day: { type: 'number', description: 'Ex: 104857600' },
+          equipments_total: { type: 'number', description: 'Ex: 1000' },
+          sensors_total: { type: 'number', description: 'Ex: 5000' },
+          users_total: { type: 'number', description: 'Ex: 50' },
+          organization_total: { type: 'number', description: 'Ex: 10' },
+          workspace_total: { type: 'number', description: 'Ex: 20' },
+          collection_interval: { type: 'number', description: 'Ex: 60' },
+          alert_delay_seconds: { type: 'number', description: 'Ex: 60' },
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              enum: ['VALIDATION_ERROR', 'INVALID_PAYLOAD'],
+            },
+            message: { type: 'string' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const {
       code,
       name,
@@ -297,12 +542,102 @@ export const adminRoutes = async (fastify) => {
     return reply.code(201).send({ status: 'ok' });
   });
 
-  fastify.get('/plans', async (_request, reply) => {
+  fastify.get('/plans', {
+    schema: {
+      description: 'Lista planos (admin global)',
+      tags: ['Admin'],
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              code: { type: 'string', description: 'Código do plano' },
+              name: { type: 'string', description: 'Nome do plano' },
+              status: { type: 'string', description: 'Status do plano' },
+              items_per_day: { type: 'number', description: 'Itens por dia' },
+              sensors_per_day: { type: 'number', description: 'Sensores por dia' },
+              bytes_per_day: { type: 'number', description: 'Bytes por dia' },
+              equipments_total: { type: 'number', description: 'Equipamentos totais' },
+              sensors_total: { type: 'number', description: 'Sensores totais' },
+              users_total: { type: 'number', description: 'Usuários totais' },
+              organization_total: { type: 'number', description: 'Organizations totais' },
+              workspace_total: { type: 'number', description: 'Workspaces totais' },
+              collection_interval: { type: 'number', description: 'Intervalo de coleta (s)' },
+              alert_delay_seconds: { type: 'number', description: 'Atraso do alerta (s)' },
+              created_at: { type: 'string', description: 'Data de criação (ISO)' },
+              updated_at: { type: 'string', description: 'Data de atualização (ISO)' },
+            },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (_request, reply) => {
     const result = await queryDatabase(`SELECT * FROM plans ORDER BY code ASC`);
     return reply.send(result);
   });
 
-  fastify.put('/plans/:code', async (request, reply) => {
+  fastify.put('/plans/:code', {
+    schema: {
+      description: 'Atualiza plano (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { code: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Ex: Legacy Plan' },
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: active' },
+          items_per_day: { type: 'number', description: 'Ex: 100000' },
+          sensors_per_day: { type: 'number', description: 'Ex: 10000' },
+          bytes_per_day: { type: 'number', description: 'Ex: 104857600' },
+          equipments_total: { type: 'number', description: 'Ex: 1000' },
+          sensors_total: { type: 'number', description: 'Ex: 5000' },
+          users_total: { type: 'number', description: 'Ex: 50' },
+          organization_total: { type: 'number', description: 'Ex: 10' },
+          workspace_total: { type: 'number', description: 'Ex: 20' },
+          collection_interval: { type: 'number', description: 'Ex: 60' },
+          alert_delay_seconds: { type: 'number', description: 'Ex: 60' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { code } = request.params;
     const payload = request.body || {};
     await queryDatabase(
@@ -344,7 +679,53 @@ export const adminRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.patch('/plans/:code/status', async (request, reply) => {
+  fastify.patch('/plans/:code/status', {
+    schema: {
+      description: 'Atualiza status do plano (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { code: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['active', 'inactive'], description: 'Ex: inactive' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              enum: ['VALIDATION_ERROR', 'INVALID_PAYLOAD'],
+            },
+            message: { type: 'string' },
+          },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { code } = request.params;
     const { status } = request.body || {};
     if (!status) {
@@ -359,7 +740,51 @@ export const adminRoutes = async (fastify) => {
   });
 
   // Tenant limits
-  fastify.post('/tenants/:id/limits', async (request, reply) => {
+  fastify.post('/tenants/:id/limits', {
+    schema: {
+      description: 'Cria/atualiza limites do tenant (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          items_per_day: { type: 'number', description: 'Ex: 100000' },
+          sensors_per_day: { type: 'number', description: 'Ex: 10000' },
+          bytes_per_day: { type: 'number', description: 'Ex: 104857600' },
+          equipments_total: { type: 'number', description: 'Ex: 1000' },
+          sensors_total: { type: 'number', description: 'Ex: 5000' },
+          users_total: { type: 'number', description: 'Ex: 50' },
+          organization_total: { type: 'number', description: 'Ex: 10' },
+          workspace_total: { type: 'number', description: 'Ex: 20' },
+          collection_interval: { type: 'number', description: 'Ex: 60' },
+          alert_delay_seconds: { type: 'number', description: 'Ex: 60' },
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const payload = request.body || {};
     await queryDatabase(
@@ -405,7 +830,51 @@ export const adminRoutes = async (fastify) => {
     return reply.code(201).send({ status: 'ok' });
   });
 
-  fastify.put('/tenants/:id/limits', async (request, reply) => {
+  fastify.put('/tenants/:id/limits', {
+    schema: {
+      description: 'Atualiza limites do tenant (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          items_per_day: { type: 'number', description: 'Ex: 100000' },
+          sensors_per_day: { type: 'number', description: 'Ex: 10000' },
+          bytes_per_day: { type: 'number', description: 'Ex: 104857600' },
+          equipments_total: { type: 'number', description: 'Ex: 1000' },
+          sensors_total: { type: 'number', description: 'Ex: 5000' },
+          users_total: { type: 'number', description: 'Ex: 50' },
+          organization_total: { type: 'number', description: 'Ex: 10' },
+          workspace_total: { type: 'number', description: 'Ex: 20' },
+          collection_interval: { type: 'number', description: 'Ex: 60' },
+          alert_delay_seconds: { type: 'number', description: 'Ex: 60' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const payload = request.body || {};
     await queryDatabase(
@@ -443,7 +912,36 @@ export const adminRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/tenants/:id/limits', async (request, reply) => {
+  fastify.delete('/tenants/:id/limits', {
+    schema: {
+      description: 'Remove limites do tenant (admin global)',
+      tags: ['Admin'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        401: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['UNAUTHORIZED'] },
+            message: { type: 'string' },
+          },
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string', enum: ['FORBIDDEN'] },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     await queryDatabase(`DELETE FROM tenant_limits WHERE tenant_id = $1`, [id]);
     await auditLog(request, 'delete', 'tenant_limits', id, {});

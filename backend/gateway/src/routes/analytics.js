@@ -8,6 +8,14 @@ import { logger } from '../utils/logger.js';
 import { queryDatabase } from '../utils/database.js';
 import config from '../config.js';
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    message: { type: 'string' },
+  },
+};
+
 function resolveTenantScope(request, reply) {
   const tenantId = request.user?.tenant_id || request.tenantContext?.tenantId || null;
   const organizationId = request.user?.organization_id || request.tenantContext?.organizationId || null;
@@ -544,6 +552,8 @@ export async function analyticsRoutes(fastify, options) {
   // Histórico de equipamento
   fastify.get('/analytics/equipment/:equipmentUuid/history', {
     schema: {
+      description: 'Histórico de telemetria por equipamento',
+      tags: ['Analytics'],
       params: {
         type: 'object',
         properties: {
@@ -559,6 +569,27 @@ export async function analyticsRoutes(fastify, options) {
           end_date: { type: 'string', format: 'date-time' },
           sensor_type: { type: 'string' }
         }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            equipment_uuid: { type: 'string', description: 'UUID do equipamento' },
+            period: { type: 'string', description: 'Granularidade' },
+            start_date: { type: 'string', description: 'Data inicial (ISO)' },
+            end_date: { type: 'string', description: 'Data final (ISO)' },
+            data: {
+              type: 'array',
+              items: { type: 'object', additionalProperties: true },
+              description: 'Séries por sensor/tempo',
+            },
+          },
+          additionalProperties: true,
+        },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
       }
     }
   }, getEquipmentHistory);
@@ -566,6 +597,8 @@ export async function analyticsRoutes(fastify, options) {
   // Histórico de sensor
   fastify.get('/analytics/sensor/:sensorUuid/history', {
     schema: {
+      description: 'Histórico de telemetria por sensor',
+      tags: ['Analytics'],
       params: {
         type: 'object',
         properties: {
@@ -580,6 +613,27 @@ export async function analyticsRoutes(fastify, options) {
           start_date: { type: 'string', format: 'date-time' },
           end_date: { type: 'string', format: 'date-time' }
         }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            sensor_uuid: { type: 'string', description: 'UUID do sensor' },
+            period: { type: 'string', description: 'Granularidade' },
+            start_date: { type: 'string', description: 'Data inicial (ISO)' },
+            end_date: { type: 'string', description: 'Data final (ISO)' },
+            data: {
+              type: 'array',
+              items: { type: 'object', additionalProperties: true },
+              description: 'Série temporal do sensor',
+            },
+          },
+          additionalProperties: true,
+        },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
       }
     }
   }, getSensorHistory);
@@ -587,6 +641,8 @@ export async function analyticsRoutes(fastify, options) {
   // Estatísticas de equipamento
   fastify.get('/analytics/equipment/:equipmentUuid/stats', {
     schema: {
+      description: 'Estatísticas agregadas do equipamento',
+      tags: ['Analytics'],
       params: {
         type: 'object',
         properties: {
@@ -600,6 +656,27 @@ export async function analyticsRoutes(fastify, options) {
           period: { type: 'string', enum: ['24h', '7d', '30d', '1y'] },
           sensor_type: { type: 'string' }
         }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            equipment_uuid: { type: 'string', description: 'UUID do equipamento' },
+            period: { type: 'string', description: 'Janela de agregação' },
+            start_date: { type: 'string', description: 'Data inicial (ISO)' },
+            end_date: { type: 'string', description: 'Data final (ISO)' },
+            sensors: {
+              type: 'array',
+              items: { type: 'object', additionalProperties: true },
+              description: 'Estatísticas por sensor',
+            },
+          },
+          additionalProperties: true,
+        },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
       }
     }
   }, getEquipmentStats);
@@ -607,6 +684,8 @@ export async function analyticsRoutes(fastify, options) {
   // Dados para Home Assistant
   fastify.get('/analytics/home-assistant/:equipmentUuid', {
     schema: {
+      description: 'Dados para integração Home Assistant',
+      tags: ['Analytics'],
       params: {
         type: 'object',
         properties: {
@@ -620,6 +699,25 @@ export async function analyticsRoutes(fastify, options) {
           hours: { type: 'integer', minimum: 1, maximum: 168 },
           sensor_type: { type: 'string' }
         }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            equipment_uuid: { type: 'string', description: 'UUID do equipamento' },
+            period_hours: { type: 'number', description: 'Janela em horas' },
+            data: {
+              type: 'array',
+              items: { type: 'object', additionalProperties: true },
+              description: 'Formato compatível com Home Assistant',
+            },
+          },
+          additionalProperties: true,
+        },
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
       }
     }
   }, getHomeAssistantData);
