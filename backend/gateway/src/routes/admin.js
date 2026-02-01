@@ -3,6 +3,7 @@
  */
 import { queryDatabase } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
+import bcrypt from 'bcrypt';
 
 function getRoleName(role) {
   if (!role) return null;
@@ -89,7 +90,47 @@ export const adminRoutes = async (fastify) => {
   });
 
   // Tenants
-  fastify.post('/tenants', async (request, reply) => {
+  fastify.post('/tenants', {
+    schema: {
+      description: 'Cria tenant e admin inicial',
+      tags: ['Admin'],
+      body: {
+        type: 'object',
+        required: ['name', 'slug', 'email', 'password'],
+        properties: {
+          name: { type: 'string' },
+          slug: { type: 'string' },
+          status: { type: 'string', enum: ['active', 'inactive'] },
+          plan_code: { type: 'string' },
+          is_white_label: { type: 'boolean' },
+          document: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string' },
+          password: { type: 'string' },
+        },
+        example: {
+          name: 'Empresa Exemplo',
+          slug: 'empresa-exemplo',
+          status: 'active',
+          plan_code: 'legacy',
+          is_white_label: false,
+          document: '00.000.000/0001-00',
+          phone: '+55 11 99999-0000',
+          email: 'admin@empresa.com',
+          password: 'SenhaForte@123',
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            admin_username: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const {
       name,
       slug,
@@ -99,9 +140,10 @@ export const adminRoutes = async (fastify) => {
       document,
       phone,
       email,
+      password,
     } = request.body || {};
-    if (!name || !slug) {
-      return reply.code(400).send({ error: 'name e slug são obrigatórios' });
+    if (!name || !slug || !email || !password) {
+      return reply.code(400).send({ error: 'name, slug, email e password são obrigatórios' });
     }
     const result = await queryDatabase(
       `
@@ -113,15 +155,63 @@ export const adminRoutes = async (fastify) => {
     );
     const tenantId = result[0]?.id;
 
-    await queryDatabase(
+    const orgInsertResult = await queryDatabase(
       `
         INSERT INTO organizations (tenant_id, name, document, phone, email, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING id
       `,
       [tenantId, name, document || null, phone || null, email || null]
     );
+    const organizationId = orgInsertResult[0]?.id;
+
+    const adminUserName = name;
+    const adminUserUsername = email;
+    const adminUserPassword = password;
+    const adminUserEmail = email;
+
+    const existingSuper = await queryDatabase(
+      `SELECT id FROM users WHERE tenant_id = $1 AND role @> '[0]'::jsonb LIMIT 1`,
+      [tenantId]
+    );
+    if (!existingSuper || existingSuper.length === 0) {
+      const hashedPassword = await bcrypt.hash(adminUserPassword, 10);
+      await queryDatabase(
+        `
+          INSERT INTO users (
+            name,
+            username,
+            email,
+            hashed_password,
+            user_type,
+            status,
+            failed_login_attempts,
+            locked_until,
+            tenant_id,
+            organization_id,
+            workspace_id,
+            role,
+            created_at,
+            updated_at
+          ) VALUES (
+            $1, $2, $3, $4, 'frontend', 'active', 0, NULL,
+            $5, $6, $7, $8::jsonb, NOW(), NOW()
+          )
+        `,
+        [
+          adminUserName,
+          adminUserUsername,
+          adminUserEmail,
+          hashedPassword,
+          tenantId,
+          [organizationId],
+          [0],
+          JSON.stringify([0]),
+        ]
+      );
+    }
     await auditLog(request, 'create', 'tenant', tenantId, { name, slug });
-    return reply.code(201).send({ id: tenantId });
+    return reply.code(201).send({ id: tenantId, admin_username: adminUserUsername });
   });
 
   fastify.get('/tenants', async (_request, reply) => {

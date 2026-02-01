@@ -200,7 +200,36 @@ export const tenantRoutes = async (fastify) => {
   });
 
   // Organizations
-  fastify.post('/organizations', async (request, reply) => {
+  fastify.post('/organizations', {
+    schema: {
+      description: 'Cria uma organization no tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          document: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string' },
+        },
+        example: {
+          name: 'Empresa Exemplo',
+          document: '00.000.000/0001-00',
+          phone: '+55 11 99999-0000',
+          email: 'contato@empresa.com',
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { name, document, phone, email } = request.body || {};
     if (!name) {
       return reply.code(400).send({ error: 'name é obrigatório' });
@@ -228,7 +257,18 @@ export const tenantRoutes = async (fastify) => {
     return reply.code(201).send({ id: result[0]?.id });
   });
 
-  fastify.get('/organizations', async (request, reply) => {
+  fastify.get('/organizations', {
+    schema: {
+      description: 'Lista organizations do tenant',
+      tags: ['Tenant'],
+      response: {
+        200: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const result = await queryDatabase(
       `SELECT * FROM organizations WHERE tenant_id = $1 ORDER BY id ASC`,
       [request.user.tenant_id]
@@ -236,7 +276,35 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.put('/organizations/:id', async (request, reply) => {
+  fastify.put('/organizations/:id', {
+    schema: {
+      description: 'Atualiza organization do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          document: { type: 'string' },
+          phone: { type: 'string' },
+          email: { type: 'string' },
+        },
+        example: {
+          name: 'Empresa Atualizada',
+          document: '00.000.000/0001-00',
+          phone: '+55 11 98888-0000',
+          email: 'contato@empresa.com',
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { name, document, phone, email } = request.body || {};
     await queryDatabase(
@@ -256,7 +324,19 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/organizations/:id', async (request, reply) => {
+  fastify.delete('/organizations/:id', {
+    schema: {
+      description: 'Remove organization do tenant',
+      tags: ['Tenant'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: { type: 'object', properties: { status: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     await queryDatabase(
       `DELETE FROM organizations WHERE id = $1 AND tenant_id = $2`,
@@ -267,7 +347,32 @@ export const tenantRoutes = async (fastify) => {
   });
 
   // Workspaces
-  fastify.post('/workspaces', async (request, reply) => {
+  fastify.post('/workspaces', {
+    schema: {
+      description: 'Cria workspace no tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        required: ['organization_id', 'name'],
+        properties: {
+          organization_id: { type: 'number' },
+          name: { type: 'string' },
+        },
+        example: {
+          organization_id: 1,
+          name: 'Projeto Principal',
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { organization_id, name } = request.body || {};
     if (!organization_id || !name) {
       return reply.code(400).send({ error: 'organization_id e name são obrigatórios' });
@@ -307,7 +412,18 @@ export const tenantRoutes = async (fastify) => {
     return reply.code(201).send({ id: result[0]?.id });
   });
 
-  fastify.get('/workspaces', async (request, reply) => {
+  fastify.get('/workspaces', {
+    schema: {
+      description: 'Lista workspaces do tenant',
+      tags: ['Tenant'],
+      response: {
+        200: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const result = await queryDatabase(
       `
         SELECT w.*
@@ -321,7 +437,29 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.put('/workspaces/:id', async (request, reply) => {
+  fastify.put('/workspaces/:id', {
+    schema: {
+      description: 'Atualiza workspace do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+        example: {
+          name: 'Projeto Atualizado',
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { name } = request.body || {};
     await queryDatabase(
@@ -338,7 +476,19 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/workspaces/:id', async (request, reply) => {
+  fastify.delete('/workspaces/:id', {
+    schema: {
+      description: 'Remove workspace do tenant',
+      tags: ['Tenant'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: { type: 'object', properties: { status: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     await queryDatabase(
       `
@@ -354,7 +504,35 @@ export const tenantRoutes = async (fastify) => {
   });
 
   // Alert rules
-  fastify.post('/alerts', async (request, reply) => {
+  fastify.post('/alerts', {
+    schema: {
+      description: 'Cria regra de alerta do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          organization_id: { type: 'number' },
+          workspace_ids: { type: 'array', items: { type: 'number' } },
+          threshold_percent: { type: 'number' },
+          enabled: { type: 'boolean' },
+        },
+        example: {
+          organization_id: 1,
+          workspace_ids: [1],
+          threshold_percent: 90,
+          enabled: true,
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { organization_id = 0, workspace_ids = [0], threshold_percent = 80, enabled = true } = request.body || {};
     const result = await queryDatabase(
       `
@@ -368,7 +546,18 @@ export const tenantRoutes = async (fastify) => {
     return reply.code(201).send({ id: result[0]?.id });
   });
 
-  fastify.get('/alerts', async (request, reply) => {
+  fastify.get('/alerts', {
+    schema: {
+      description: 'Lista regras de alerta do tenant',
+      tags: ['Tenant'],
+      response: {
+        200: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const result = await queryDatabase(
       `SELECT * FROM tenant_alert_rules WHERE tenant_id = $1 ORDER BY id ASC`,
       [request.user.tenant_id]
@@ -376,7 +565,35 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.put('/alerts/:id', async (request, reply) => {
+  fastify.put('/alerts/:id', {
+    schema: {
+      description: 'Atualiza regra de alerta do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          organization_id: { type: 'number' },
+          workspace_ids: { type: 'array', items: { type: 'number' } },
+          threshold_percent: { type: 'number' },
+          enabled: { type: 'boolean' },
+        },
+        example: {
+          organization_id: 1,
+          workspace_ids: [1],
+          threshold_percent: 100,
+          enabled: true,
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const payload = request.body || {};
     await queryDatabase(
@@ -396,7 +613,19 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/alerts/:id', async (request, reply) => {
+  fastify.delete('/alerts/:id', {
+    schema: {
+      description: 'Remove regra de alerta do tenant',
+      tags: ['Tenant'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: { type: 'object', properties: { status: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     await queryDatabase(
       `DELETE FROM tenant_alert_rules WHERE id = $1 AND tenant_id = $2`,
@@ -407,7 +636,39 @@ export const tenantRoutes = async (fastify) => {
   });
 
   // Webhooks
-  fastify.post('/webhooks', async (request, reply) => {
+  fastify.post('/webhooks', {
+    schema: {
+      description: 'Cria webhook do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          organization_id: { type: 'number' },
+          workspace_ids: { type: 'array', items: { type: 'number' } },
+          event_types: { type: 'array', items: { type: 'string' } },
+          url: { type: 'string' },
+          secret: { type: 'string' },
+          enabled: { type: 'boolean' },
+        },
+        example: {
+          organization_id: 1,
+          workspace_ids: [1],
+          event_types: ['quota_80', 'quota_90'],
+          url: 'https://hooks.exemplo.com/telemetria',
+          secret: 'segredo-webhook',
+          enabled: true,
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { organization_id = 0, workspace_ids = [0], event_types = ['quota_80','quota_90','quota_100'], url, secret, enabled = false } = request.body || {};
     const result = await queryDatabase(
       `
@@ -421,7 +682,18 @@ export const tenantRoutes = async (fastify) => {
     return reply.code(201).send({ id: result[0]?.id });
   });
 
-  fastify.get('/webhooks', async (request, reply) => {
+  fastify.get('/webhooks', {
+    schema: {
+      description: 'Lista webhooks do tenant',
+      tags: ['Tenant'],
+      response: {
+        200: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const result = await queryDatabase(
       `SELECT * FROM tenant_webhooks WHERE tenant_id = $1 ORDER BY id ASC`,
       [request.user.tenant_id]
@@ -429,7 +701,39 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.put('/webhooks/:id', async (request, reply) => {
+  fastify.put('/webhooks/:id', {
+    schema: {
+      description: 'Atualiza webhook do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          organization_id: { type: 'number' },
+          workspace_ids: { type: 'array', items: { type: 'number' } },
+          event_types: { type: 'array', items: { type: 'string' } },
+          url: { type: 'string' },
+          secret: { type: 'string' },
+          enabled: { type: 'boolean' },
+        },
+        example: {
+          organization_id: 1,
+          workspace_ids: [1],
+          event_types: ['quota_100'],
+          url: 'https://hooks.exemplo.com/telemetria',
+          secret: 'segredo-webhook',
+          enabled: true,
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const payload = request.body || {};
     await queryDatabase(
@@ -460,7 +764,19 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/webhooks/:id', async (request, reply) => {
+  fastify.delete('/webhooks/:id', {
+    schema: {
+      description: 'Remove webhook do tenant',
+      tags: ['Tenant'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: { type: 'object', properties: { status: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     await queryDatabase(
       `DELETE FROM tenant_webhooks WHERE id = $1 AND tenant_id = $2`,
@@ -471,7 +787,50 @@ export const tenantRoutes = async (fastify) => {
   });
 
   // Users (Tenant)
-  fastify.post('/users', async (request, reply) => {
+  fastify.post('/users', {
+    schema: {
+      description: 'Cria usuário no tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        required: ['username', 'password'],
+        properties: {
+          name: { type: 'string' },
+          username: { type: 'string' },
+          email: { type: 'string' },
+          password: { type: 'string' },
+          role: {
+            oneOf: [
+              { type: 'string', enum: ['admin', 'manager', 'viewer'] },
+              { type: 'array', items: { type: 'number' } },
+              { type: 'object' },
+            ],
+          },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
+          organization_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+          workspace_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+        },
+        example: {
+          name: 'João da Silva',
+          username: 'joao.silva',
+          email: 'joao@empresa.com',
+          password: 'SenhaForte@123',
+          role: { role: 'viewer' },
+          status: 'active',
+          organization_id: 1,
+          workspace_id: [1],
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const {
       username,
       name,
@@ -608,7 +967,18 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.get('/users', async (request, reply) => {
+  fastify.get('/users', {
+    schema: {
+      description: 'Lista usuários do tenant',
+      tags: ['Tenant'],
+      response: {
+        200: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const result = await queryDatabase(
       `
         SELECT id, username, email, role, status, user_type, organization_id, workspace_id, created_at, updated_at
@@ -621,7 +991,43 @@ export const tenantRoutes = async (fastify) => {
     return reply.send(result);
   });
 
-  fastify.put('/users/:id', async (request, reply) => {
+  fastify.put('/users/:id', {
+    schema: {
+      description: 'Atualiza usuário do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        properties: {
+          email: { type: 'string' },
+          role: {
+            oneOf: [
+              { type: 'string', enum: ['admin', 'manager', 'viewer'] },
+              { type: 'array', items: { type: 'number' } },
+              { type: 'object' },
+            ],
+          },
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
+          organization_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+          workspace_id: { oneOf: [{ type: 'number' }, { type: 'array', items: { type: 'number' } }] },
+        },
+        example: {
+          email: 'joao@empresa.com',
+          role: { role: 'manager' },
+          status: 'active',
+          organization_id: 1,
+          workspace_id: [1],
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const {
       email,
@@ -677,7 +1083,30 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.patch('/users/:id/password', async (request, reply) => {
+  fastify.patch('/users/:id/password', {
+    schema: {
+      description: 'Atualiza senha do usuário do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        required: ['password'],
+        properties: {
+          password: { type: 'string' },
+        },
+        example: {
+          password: 'NovaSenha@123',
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { password } = request.body || {};
     if (!password) {
@@ -692,7 +1121,30 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.patch('/users/:id/status', async (request, reply) => {
+  fastify.patch('/users/:id/status', {
+    schema: {
+      description: 'Atualiza status do usuário do tenant',
+      tags: ['Tenant'],
+      body: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['active', 'inactive', 'blocked'] },
+        },
+        example: {
+          status: 'inactive',
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     const { status } = request.body || {};
     if (!status) {
@@ -726,7 +1178,19 @@ export const tenantRoutes = async (fastify) => {
     return reply.send({ status: 'ok' });
   });
 
-  fastify.delete('/users/:id', async (request, reply) => {
+  fastify.delete('/users/:id', {
+    schema: {
+      description: 'Remove (soft delete) usuário do tenant',
+      tags: ['Tenant'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+      },
+      response: {
+        200: { type: 'object', properties: { status: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params;
     if (Number(id) === Number(request.user?.user_id)) {
       return reply.code(400).send({ error: 'Você não pode excluir o próprio usuário' });
