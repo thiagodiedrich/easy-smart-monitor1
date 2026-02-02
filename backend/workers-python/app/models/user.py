@@ -6,7 +6,7 @@ Suporta dois tipos de usuários: Frontend e Device (IoT).
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -72,6 +72,9 @@ class User(Base):
         default={"role": UserRole.VIEWER.value},
         nullable=False
     )
+
+    # Super admin global (apenas 1 no sistema)
+    is_superadmin = Column(Boolean, default=False, nullable=False)
     
     # Metadados
     last_login_at = Column(DateTime, nullable=True)

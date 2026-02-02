@@ -6,6 +6,7 @@
  */
 import { logger } from '../utils/logger.js';
 import { queryDatabase } from '../utils/database.js';
+import { hasPermission } from '../utils/permissions.js';
 import config from '../config.js';
 
 const errorResponseSchema = {
@@ -570,6 +571,12 @@ export async function analyticsRoutes(fastify, options) {
         return reply.code(403).send({ 
           error: 'FORBIDDEN',
           message: 'Apenas usuários frontend podem acessar analytics' 
+        });
+      }
+      if (!hasPermission(request, 'analytics.read')) {
+        return reply.code(403).send({
+          error: 'FORBIDDEN',
+          message: 'Acesso restrito pelo role',
         });
       }
     } catch (err) {

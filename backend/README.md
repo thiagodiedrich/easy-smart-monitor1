@@ -32,6 +32,11 @@ GET /api/v1/tenant/workspaces?tenant_id=2&organization_id=1,2
 GET /api/v1/tenant/sensors?tenant_id=2&workspace_id=10,11
 ```
 
+## 👤 Tipos de usuários e permissões
+
+Veja a documentação completa em:
+`docs/USERS_AND_ROLES.md`
+
 ## 🏗️ Arquitetura
 
 ### Componentes Principais

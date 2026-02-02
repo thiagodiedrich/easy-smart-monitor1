@@ -10,6 +10,7 @@
 import { logger } from '../utils/logger.js';
 import { validateUserCredentials, UserType } from '../utils/auth.js';
 import { queryDatabase } from '../utils/database.js';
+import { getEffectivePermissions } from '../utils/permissions.js';
 import config from '../config.js';
 import bcrypt from 'bcrypt';
 
@@ -575,6 +576,11 @@ export const authRoutes = async (fastify) => {
                 { type: 'array', items: { type: 'number' }, description: 'Ex: [0]' },
               ],
             },
+            permissions: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Permissões efetivas do usuário',
+            },
             user_type: { type: 'string', description: 'frontend | device' },
             device_id: { type: 'string', description: 'Ex: iot-abc-001' },
           },
@@ -594,6 +600,13 @@ export const authRoutes = async (fastify) => {
         });
       }
       
+      let effectivePermissions = [];
+      try {
+        effectivePermissions = getEffectivePermissions(request.user.role);
+      } catch (err) {
+        logger.error('Erro ao obter permissões do usuário', { error: err.message, role: request.user.role });
+      }
+      
       return {
         username: request.user.sub,
         user_id: request.user.user_id,
@@ -601,6 +614,7 @@ export const authRoutes = async (fastify) => {
         organization_id: normalizeScopeArrayValue(request.user.organization_id),
         workspace_id: normalizeScopeArrayValue(request.user.workspace_id),
         role: request.user.role,
+        permissions: effectivePermissions,
         user_type: request.user.user_type,
         device_id: request.user.device_id,
       };

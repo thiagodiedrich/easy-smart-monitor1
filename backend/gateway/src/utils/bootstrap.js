@@ -94,13 +94,12 @@ export async function bootstrapMasterAdmin() {
     }
   }
 
-  // Verificar se já existe super user para o tenant (role [0])
+  // Verificar se já existe super admin global (role [0] ou flag is_superadmin)
   const existingSuper = await queryDatabase(
-    `SELECT id FROM users WHERE tenant_id = $1 AND role @> '[0]'::jsonb LIMIT 1`,
-    [tenantId]
+    `SELECT id FROM users WHERE is_superadmin = TRUE OR role @> '[0]'::jsonb LIMIT 1`
   );
   if (existingSuper && existingSuper.length > 0) {
-    logger.info('Super user já existe para o tenant, bootstrap ignorado', { tenant_id: tenantId });
+    logger.info('Super admin já existe, bootstrap ignorado');
     return;
   }
 
@@ -131,9 +130,10 @@ export async function bootstrapMasterAdmin() {
         organization_id,
         workspace_id,
         role,
+        is_superadmin,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, 'frontend', 'active', 0, NULL, $5, $6, $7, $8::jsonb, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, 'frontend', 'active', 0, NULL, $5, $6, $7, $8::jsonb, TRUE, NOW(), NOW())
     `,
     [name || username, username, email, hashedPassword, tenantId, [organizationId], [workspaceId], JSON.stringify(roleValue)]
   );

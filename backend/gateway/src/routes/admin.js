@@ -183,11 +183,11 @@ export const adminRoutes = async (fastify) => {
     const adminUserPassword = password;
     const adminUserEmail = email;
 
-    const existingSuper = await queryDatabase(
-      `SELECT id FROM users WHERE tenant_id = $1 AND role @> '[0]'::jsonb LIMIT 1`,
+    const existingAdmin = await queryDatabase(
+      `SELECT id FROM users WHERE tenant_id = $1 AND user_type = 'frontend' LIMIT 1`,
       [tenantId]
     );
-    if (!existingSuper || existingSuper.length === 0) {
+    if (!existingAdmin || existingAdmin.length === 0) {
       const hashedPassword = await bcrypt.hash(adminUserPassword, 10);
       await queryDatabase(
         `
@@ -219,7 +219,7 @@ export const adminRoutes = async (fastify) => {
           tenantId,
           [organizationId],
           [0],
-          JSON.stringify([0]),
+          JSON.stringify({ role: 'admin' }),
         ]
       );
     }

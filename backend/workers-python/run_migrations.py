@@ -53,6 +53,7 @@ async def run_migrations(command):
         "030_add_workspace_status",
         "031_add_workspace_description",
         "032_users_name_backfill",
+        "033_super_admin_flag",
     ]
     migrations = [(name, *_load_migration(name)) for name in migration_names]
     
